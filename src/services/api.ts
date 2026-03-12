@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:5001/api', // Assume backend is on port 5001
+    baseURL: 'https://ipr-backend-u4al.onrender.com/api', 
 });
 
 // Request interceptor for adding the JWT token to headers
