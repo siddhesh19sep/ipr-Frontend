@@ -1,9 +1,10 @@
 import React, { useContext } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
 import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
 
 // Pages
 import Login from './pages/Login';
@@ -18,6 +19,11 @@ import DisputeResolution from './pages/DisputeResolution';
 import FileDispute from './pages/FileDispute';
 import RoyaltyHistory from './pages/RoyaltyHistory';
 import Settings from './pages/Settings';
+import PublicVerification from './pages/PublicVerification';
+import LandingPage from './pages/LandingPage';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import MyLicenses from './pages/MyLicenses';
 
 function RootRedirect() {
     const { isAuthenticated, isAdminView, isLoading, user } = useContext(AuthContext);
@@ -38,13 +44,39 @@ function App() {
     return (
         <AuthProvider>
             <BrowserRouter>
-                <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
-                    <Navbar />
-                    <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <AppContent />
+            </BrowserRouter>
+        </AuthProvider>
+    );
+}
+
+function AppContent() {
+    const { isAuthenticated } = useContext(AuthContext);
+    const location = useLocation();
+    
+    // Hide global layout on public-facing pages
+    const isPublicPage = location.pathname === '/' || 
+                         location.pathname === '/verify' || 
+                         location.pathname === '/forgot-password' || 
+                         location.pathname.startsWith('/reset-password/');
+
+    return (
+        <div className={`h-screen flex flex-row overflow-hidden font-sans ${isPublicPage ? 'bg-slate-950' : 'bg-slate-50'}`}>
+            {!isPublicPage && <Sidebar />}
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+                {!isPublicPage && <Navbar />}
+                <main className={`flex-1 overflow-y-auto w-full ${isPublicPage ? '' : 'p-4 sm:p-6 lg:p-8'}`}>
+                    <div className={isPublicPage ? '' : 'max-w-7xl mx-auto w-full'}>
                         <Routes>
+                            {/* Static Landing Page at Root */}
+                            <Route path="/" element={<LandingPage />} />
+                            
                             {/* Public Routes */}
                             <Route path="/login" element={<Login />} />
                             <Route path="/register" element={<Register />} />
+                            <Route path="/verify" element={<PublicVerification />} />
+                            <Route path="/forgot-password" element={<ForgotPassword />} />
+                            <Route path="/reset-password/:token" element={<ResetPassword />} />
 
                             {/* Protected Routes */}
                             <Route
@@ -58,7 +90,7 @@ function App() {
                             <Route
                                 path="/dashboard"
                                 element={
-                                    <RoleProtectedRoute allowedRoles={['Admin']}>
+                                    <RoleProtectedRoute allowedRoles={['Admin', 'User']}>
                                         <CreatorDashboard />
                                     </RoleProtectedRoute>
                                 }
@@ -129,17 +161,22 @@ function App() {
                                     </ProtectedRoute>
                                 }
                             />
-
-                            {/* Redirect root intelligently */}
-                            <Route path="/" element={<RootRedirect />} />
+                            <Route
+                                path="/my-licenses"
+                                element={
+                                    <ProtectedRoute>
+                                        <MyLicenses />
+                                    </ProtectedRoute>
+                                }
+                            />
 
                             {/* Fallback route */}
-                            <Route path="*" element={<RootRedirect />} />
+                            <Route path="*" element={<Navigate to="/" replace />} />
                         </Routes>
-                    </main>
-                </div>
-            </BrowserRouter>
-        </AuthProvider>
+                    </div>
+                </main>
+            </div>
+        </div>
     );
 }
 

@@ -1,221 +1,220 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Lock, FileCheck, Zap, ArrowRight, CheckCircle2, Globe, Database } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Shield, ShieldCheck, Zap, Globe, Lock, ArrowRight, CheckCircle2 } from 'lucide-react';
 
-export default function LandingPage() {
-  return (
-    <div className="bg-white">
-      {/* Navigation */}
-      <nav className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-            <Shield size={24} />
-          </div>
-          <span className="text-2xl font-bold tracking-tight text-slate-900">IPR Shield</span>
-        </div>
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
-          <a href="#features" className="hover:text-indigo-600 transition-colors">Features</a>
-          <a href="#how-it-works" className="hover:text-indigo-600 transition-colors">How it Works</a>
-          <a href="#security" className="hover:text-indigo-600 transition-colors">Security</a>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link to="/login/user" className="text-sm font-semibold text-slate-900 hover:text-indigo-600 transition-colors">Login</Link>
-          <Link to="/login/admin" className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200">
-            Admin Portal
-          </Link>
-        </div>
-      </nav>
+// Using the provided AI-generated asset paths
+const HERO_IMAGE = "/blockchain_hero_vision_1773668439640.png";
+const DASHBOARD_MOCKUP = "/ipr_dashboard_mockup_1773668463342.png";
 
-      {/* Hero Section */}
-      <section className="relative pt-20 pb-32 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-6">
-              <Zap size={14} />
-              <span>Next-Gen IP Protection</span>
-            </div>
-            <h1 className="text-6xl font-extrabold text-slate-900 leading-[1.1] mb-6">
-              Secure Your Intellectual Property with <span className="text-indigo-600">Blockchain</span> Protection
-            </h1>
-            <p className="text-lg text-slate-600 mb-10 leading-relaxed max-w-xl">
-              Immutable timestamping, verified ownership authentication, and secure smart contract licensing. The world's most trusted platform for IPR management.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link to="/login/user" className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 flex items-center gap-2 group">
-                Login as Creator/User
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link to="/login/admin" className="bg-white border-2 border-slate-200 text-slate-900 px-8 py-4 rounded-2xl font-bold hover:border-indigo-600 hover:text-indigo-600 transition-all">
-                Login as Admin
-              </Link>
-            </div>
+const LandingPage: React.FC = () => {
+    return (
+        <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
             
-            <div className="mt-12 flex items-center gap-8">
-              <div className="flex -space-x-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <img 
-                    key={i}
-                    src={`https://picsum.photos/seed/${i + 10}/100/100`} 
-                    className="w-10 h-10 rounded-full border-2 border-white object-cover" 
-                    alt="User"
-                    referrerPolicy="no-referrer"
-                  />
-                ))}
-              </div>
-              <p className="text-sm text-slate-500 font-medium">
-                Joined by <span className="text-slate-900 font-bold">2,500+</span> creators across India
-              </p>
-            </div>
-          </motion.div>
+            {/* Premium Sticky Navbar */}
+            <nav className="fixed top-0 w-full z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
+                <div className="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                        <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-2 rounded-xl shadow-lg shadow-indigo-500/20">
+                            <Shield className="h-6 w-6 text-white" />
+                        </div>
+                        <span className="text-xl font-bold tracking-tight text-white">
+                            IPR<span className="text-indigo-400">Chain</span>
+                        </span>
+                    </div>
+                    
+                    <div className="hidden md:flex items-center space-x-8">
+                        <a href="#features" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Features</a>
+                        <Link to="/verify" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Public Verification</Link>
+                    </div>
 
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative"
-          >
-            <div className="absolute -top-20 -right-20 w-96 h-96 bg-indigo-100 rounded-full blur-3xl opacity-50" />
-            <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-purple-100 rounded-full blur-3xl opacity-50" />
-            
-            <div className="relative bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 p-4 overflow-hidden">
-              <div className="bg-slate-50 rounded-[2rem] p-8 aspect-square flex items-center justify-center relative">
-                {/* Visual Representation of Blockchain/IP */}
-                <div className="relative z-10">
-                  <motion.div 
-                    animate={{ y: [0, -10, 0] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                    className="w-48 h-48 bg-indigo-600 rounded-3xl shadow-2xl flex items-center justify-center text-white relative"
-                  >
-                    <Shield size={80} strokeWidth={1.5} />
-                    <div className="absolute -top-4 -right-4 w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
-                      <Lock size={24} />
+                    <div className="flex items-center space-x-6">
+                        <Link to="/login" className="text-sm font-semibold text-white hover:text-indigo-400 transition-colors">
+                            Sign In
+                        </Link>
+                        <Link to="/register" className="bg-white text-slate-950 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all shadow-xl shadow-white/5 active:scale-95">
+                            Get Started
+                        </Link>
                     </div>
-                  </motion.div>
-                  
-                  {/* Floating Elements */}
-                  <motion.div 
-                    animate={{ x: [0, 10, 0], y: [0, 5, 0] }}
-                    transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute -left-12 top-0 bg-white p-4 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-3"
-                  >
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
-                      <Database size={20} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Blockchain Hash</p>
-                      <p className="text-xs font-mono font-bold text-slate-900">0x7f8e...a1b2</p>
-                    </div>
-                  </motion.div>
-
-                  <motion.div 
-                    animate={{ x: [0, -10, 0], y: [0, -5, 0] }}
-                    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute -right-16 bottom-10 bg-white p-4 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-3"
-                  >
-                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
-                      <FileCheck size={20} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</p>
-                      <p className="text-xs font-bold text-slate-900">Verified Ownership</p>
-                    </div>
-                  </motion.div>
                 </div>
+            </nav>
 
-                {/* Background Grid/Nodes */}
-                <div className="absolute inset-0 opacity-10 pointer-events-none">
-                  <div className="h-full w-full" style={{ backgroundImage: 'radial-gradient(#4f46e5 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+            {/* Hero Section */}
+            <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+                {/* Background Glows */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none"></div>
+                
+                <div className="max-w-7xl mx-auto px-6 lg:px-12 relative z-10">
+                    <div className="grid lg:grid-cols-2 gap-16 items-center">
+                        <div className="text-center lg:text-left space-y-8">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 text-indigo-400 text-xs font-bold uppercase tracking-widest rounded-full border border-indigo-500/20">
+                                <Zap className="h-3 w-3" />
+                                Next-Gen IP Security
+                            </div>
+                            <h1 className="text-5xl lg:text-7xl font-extrabold text-white leading-[1.1] tracking-tight">
+                                Secure Your <span className="bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent">Digital Legacy</span> on Blockchain
+                            </h1>
+                            <p className="text-lg lg:text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                                The world's most advanced platform for Intellectual Property registration, AI plagiarism detection, and instant global verification.
+                            </p>
+                            <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+                                <Link to="/register" className="group bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl font-bold text-lg inline-flex items-center gap-2 transition-all shadow-2xl shadow-indigo-500/20">
+                                    Protect Your Work
+                                    <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                                </Link>
+                                <Link to="/verify" className="px-8 py-4 text-slate-300 hover:text-white font-bold text-lg transition-colors">
+                                    Search Registry
+                                </Link>
+                            </div>
+                        </div>
+
+                        <div className="relative">
+                            <div className="absolute -inset-4 bg-indigo-500/20 blur-3xl rounded-[2.5rem]"></div>
+                            <div className="relative bg-slate-900 border border-white/10 rounded-[2.5rem] p-4 shadow-2xl overflow-hidden aspect-square lg:aspect-video">
+                                <img 
+                                    src={HERO_IMAGE} 
+                                    alt="Blockchain Network Visualization" 
+                                    className="w-full h-full object-cover rounded-2xl grayscale-[20%] hover:grayscale-0 transition-all duration-700"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent"></div>
+                                <div className="absolute bottom-8 left-8 right-8 p-6 bg-slate-900/40 backdrop-blur-md rounded-2xl border border-white/5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-emerald-500/20 p-2 rounded-lg">
+                                            <ShieldCheck className="h-5 w-5 text-emerald-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-white uppercase tracking-wider">Network Status</p>
+                                            <p className="text-sm text-emerald-400 font-medium">Secured by Polygon Amoy</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+            </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-24 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">Comprehensive IPR Management</h2>
-            <p className="text-slate-600">Everything you need to protect, manage, and monetize your intellectual assets in one secure platform.</p>
-          </div>
+            {/* Features Grid */}
+            <section id="features" className="py-24 bg-slate-900/30">
+                <div className="max-w-7xl mx-auto px-6 lg:px-12">
+                    <div className="text-center mb-20 space-y-4">
+                        <h2 className="text-3xl lg:text-5xl font-bold text-white tracking-tight">Enterprise-Grade Modules</h2>
+                        <p className="text-slate-400 max-w-2xl mx-auto">Everything you need to register, protect, and monetize your intellectual assets in one unified platform.</p>
+                    </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { 
-                title: 'Immutable Timestamping', 
-                desc: 'Every registration is recorded on the blockchain with a permanent, tamper-proof timestamp.',
-                icon: Zap,
-                color: 'bg-indigo-100 text-indigo-600'
-              },
-              { 
-                title: 'Smart Contract Licensing', 
-                desc: 'Automate licensing agreements and ensure compliance with self-executing smart contracts.',
-                icon: Lock,
-                color: 'bg-purple-100 text-purple-600'
-              },
-              { 
-                title: 'Royalty Tracking', 
-                desc: 'Real-time tracking of royalty payments in Indian Rupees (₹) with transparent reporting.',
-                icon: Globe,
-                color: 'bg-emerald-100 text-emerald-600'
-              },
-              { 
-                title: 'Dispute Resolution', 
-                desc: 'Structured legal framework for resolving IP disputes with blockchain-backed evidence.',
-                icon: Shield,
-                color: 'bg-amber-100 text-amber-600'
-              },
-              { 
-                title: 'Ownership Verification', 
-                desc: 'Instant verification of IP ownership for third parties through public blockchain records.',
-                icon: FileCheck,
-                color: 'bg-blue-100 text-blue-600'
-              },
-              { 
-                title: 'Global Compliance', 
-                desc: 'Adheres to international IPR standards while optimized for Indian legal requirements.',
-                icon: CheckCircle2,
-                color: 'bg-rose-100 text-rose-600'
-              }
-            ].map((feature, idx) => (
-              <motion.div 
-                key={idx}
-                whileHover={{ y: -5 }}
-                className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl transition-all"
-              >
-                <div className={`w-14 h-14 ${feature.color} rounded-2xl flex items-center justify-center mb-6`}>
-                  <feature.icon size={28} />
+                    <div className="grid md:grid-cols-3 gap-8">
+                        <FeatureCard 
+                            icon={<Zap className="h-6 w-6 text-indigo-400" />}
+                            title="AI Plagiarism Scan"
+                            description="Automatically verify the uniqueness of your work against our entire global database using advanced AI similarity algorithms."
+                        />
+                        <FeatureCard 
+                            icon={<Globe className="h-6 w-6 text-blue-400" />}
+                            title="Immutable Registry"
+                            description="Your assets are timestamped and hashed onto the blockchain, creating permanent, unfalsifiable proof of ownership."
+                        />
+                        <FeatureCard 
+                            icon={<Lock className="h-6 w-6 text-emerald-400" />}
+                            title="Smart Verification"
+                            description="Public-facing portal that allows anyone to verify your certificates instantly via a unique ID or QR code."
+                        />
+                    </div>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">{feature.title}</h3>
-                <p className="text-slate-600 leading-relaxed text-sm">{feature.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+            </section>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-100 py-12">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
-              <Shield size={18} />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-slate-900">IPR Shield</span>
-          </div>
-          <p className="text-slate-500 text-sm">© 2024 IPR Shield. Securely protecting Indian innovation.</p>
-          <div className="flex items-center gap-6 text-sm font-medium text-slate-600">
-            <a href="#" className="hover:text-indigo-600">Privacy Policy</a>
-            <a href="#" className="hover:text-indigo-600">Terms of Service</a>
-            <a href="#" className="hover:text-indigo-600">Contact Us</a>
-          </div>
+            {/* Product Preview Section */}
+            <section className="py-24 relative overflow-hidden">
+                <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-indigo-600/5 blur-[120px] rounded-full pointer-events-none"></div>
+                
+                <div className="max-w-7xl mx-auto px-6 lg:px-12">
+                    <div className="bg-slate-900/50 rounded-[3rem] border border-white/5 p-8 lg:p-16 relative z-10 backdrop-blur-sm">
+                        <div className="grid lg:grid-cols-5 gap-16 items-center">
+                            <div className="lg:col-span-2 space-y-8">
+                                <h2 className="text-4xl font-bold text-white leading-tight">Designed for the Next Generation of Creators</h2>
+                                <p className="text-slate-400 leading-relaxed">
+                                    Our interface combines high-performance data tracking with a beautiful glassmorphism aesthetic, ensuring you can manage your IPR portfolio with surgical precision and visual excellence.
+                                </p>
+                                <ul className="space-y-4">
+                                    <li className="flex items-center gap-3 text-slate-200">
+                                        <CheckCircle2 className="h-5 w-5 text-indigo-500" />
+                                        <span>Real-time Royalty Tracking</span>
+                                    </li>
+                                    <li className="flex items-center gap-3 text-slate-200">
+                                        <CheckCircle2 className="h-5 w-5 text-indigo-500" />
+                                        <span>Automated Dispute Filing</span>
+                                    </li>
+                                    <li className="flex items-center gap-3 text-slate-200">
+                                        <CheckCircle2 className="h-5 w-5 text-indigo-500" />
+                                        <span>Web3 Wallet Support</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div className="lg:col-span-3">
+                                <div className="relative group">
+                                    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+                                    <div className="relative bg-slate-950 rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
+                                        <img 
+                                            src={DASHBOARD_MOCKUP} 
+                                            alt="Platform Dashboard Preview" 
+                                            className="w-full h-auto group-hover:scale-[1.02] transition-transform duration-700"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* CTA Section */}
+            <section className="py-24 text-center">
+                <div className="max-w-4xl mx-auto px-6 space-y-8">
+                    <h2 className="text-4xl lg:text-6xl font-extrabold text-white tracking-tight">Ready to Secure Your Work?</h2>
+                    <p className="text-xl text-slate-400">Join thousands of creators protecting their legacy on the blockchain.</p>
+                    <div className="pt-4">
+                        <Link to="/register" className="bg-white text-slate-950 px-10 py-5 rounded-2xl font-extrabold text-xl hover:bg-slate-100 transition-all shadow-2xl shadow-white/10 active:scale-95">
+                            Create Free Account
+                        </Link>
+                    </div>
+                </div>
+            </section>
+
+            {/* Simple Footer */}
+            <footer className="py-12 border-t border-white/5 bg-slate-950">
+                <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
+                    <div className="flex items-center gap-2">
+                        <Shield className="h-6 w-6 text-indigo-500" />
+                        <span className="font-bold text-white">IPRChain</span>
+                    </div>
+                    <p className="text-sm text-slate-500">© 2026 IPR Blockchain Project. All rights reserved.</p>
+                    <div className="flex items-center space-x-6">
+                        <Link to="/verify" className="text-sm text-slate-400 hover:text-white transition-colors">Verify Portal</Link>
+                        <a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">Legal</a>
+                        <a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">Privacy</a>
+                    </div>
+                </div>
+            </footer>
         </div>
-      </footer>
-    </div>
-  );
+    );
+};
+
+interface FeatureCardProps {
+    icon: React.ReactNode;
+    title: string;
+    description: string;
 }
+
+const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description }) => {
+    return (
+        <div className="p-8 bg-slate-900/40 border border-white/5 rounded-[2rem] hover:border-indigo-500/30 transition-all group hover:-translate-y-2">
+            <div className="mb-6 p-3 bg-slate-950 rounded-2xl w-fit border border-white/5 shadow-inner group-hover:shadow-indigo-500/10 transition-shadow">
+                {icon}
+            </div>
+            <h3 className="text-xl font-bold text-white mb-4">{title}</h3>
+            <p className="text-slate-400 leading-relaxed text-sm">
+                {description}
+            </p>
+        </div>
+    );
+};
+
+export default LandingPage;

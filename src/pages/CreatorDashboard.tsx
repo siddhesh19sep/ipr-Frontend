@@ -36,21 +36,18 @@ export default function CreatorDashboard() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState<any>(null);
-  const [dashboardDisputes, setDashboardDisputes] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [dashRes, dispRes] = await Promise.all([
+        const [dashRes, alertRes] = await Promise.all([
           api.get('/dashboard/creator'),
-          api.get('/disputes')
+          api.get('/alerts')
         ]);
         setDashboardData(dashRes.data);
-
-        // Filter out resolved so we only see 'Open' disputes in alerts
-        const activeAlerts = dispRes.data.filter((d: any) => d.status === 'Open').slice(0, 3);
-        setDashboardDisputes(activeAlerts);
+        setAlerts(alertRes.data.slice(0, 5));
 
       } catch (error) {
         console.error("Failed to load dashboard data", error);
@@ -185,30 +182,30 @@ export default function CreatorDashboard() {
             <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <Bell className="text-indigo-500" size={20} /> System Alerts
             </h3>
-            {dashboardDisputes.length > 0 && <span className="bg-rose-100 text-rose-600 text-xs font-bold px-2 py-0.5 rounded-full">{dashboardDisputes.length} New</span>}
+            {alerts.filter(a => !a.isRead).length > 0 && <span className="bg-rose-100 text-rose-600 text-xs font-bold px-2 py-0.5 rounded-full">{alerts.filter(a => !a.isRead).length} New</span>}
           </div>
 
           <div className="flex-1 overflow-y-auto pr-2 space-y-4">
-            {dashboardDisputes.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center mt-10">No active alerts or disputes right now.</p>
+            {alerts.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center mt-10">No active alerts right now.</p>
             ) : (
-              dashboardDisputes.map((dispute: any, idx) => (
+              alerts.map((alert: any, idx) => (
                 <motion.div
-                  key={dispute._id}
+                  key={alert._id}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.15 }}
-                  className={`p-4 rounded-2xl border transition-colors bg-white border-rose-100 shadow-sm cursor-pointer hover:border-rose-300 group`}
-                  onClick={() => navigate('/disputes')}
+                  className={`p-4 rounded-2xl border transition-colors bg-white ${!alert.isRead ? 'border-indigo-100 bg-indigo-50/20' : 'border-slate-100'} shadow-sm cursor-pointer hover:border-indigo-300 group`}
+                  onClick={() => alert.relatedId && navigate(`/ips/${alert.relatedId}`)}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`mt-0.5 p-1.5 rounded-full flex-shrink-0 bg-rose-100 text-rose-600`}>
-                      <AlertCircle size={14} />
+                    <div className={`mt-0.5 p-1.5 rounded-full flex-shrink-0 ${!alert.isRead ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
+                      {alert.type === 'Expiration' ? <Clock size={14} /> : alert.type === 'License' ? <Database size={14} /> : <Bell size={14} />}
                     </div>
                     <div>
-                      <h4 className={`text-sm font-bold text-slate-900 group-hover:text-rose-600 transition-colors`}>Open Dispute: {dispute.ipTitle}</h4>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">Filed by: {dispute.filedBy?.name || 'Unknown'}</p>
-                      <span className="text-[10px] font-bold text-slate-400 mt-2 block uppercase tracking-wider">{new Date(dispute.createdAt).toLocaleDateString()}</span>
+                      <h4 className={`text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors`}>{alert.title}</h4>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">{alert.message}</p>
+                      <span className="text-[10px] font-bold text-slate-400 mt-2 block uppercase tracking-wider">{new Date(alert.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
                 </motion.div>
@@ -269,6 +266,54 @@ export default function CreatorDashboard() {
                 </div>
               </motion.div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Recent Transactions Feed */}
+      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <IndianRupee className="text-emerald-500" size={20} /> License Sales & Royalty History
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">Your most recent incoming payments from IP licensing</p>
+          </div>
+          <Link to="/royalty-history" className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors">View All Statements &rarr;</Link>
+        </div>
+
+        {dashboardData?.recentTransactions.length === 0 ? (
+          <div className="py-10 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-200 text-slate-400 text-sm">
+            No transactions recorded yet.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                  <th className="px-4 py-3">Transaction ID</th>
+                  <th className="px-4 py-3">Asset</th>
+                  <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Amount</th>
+                  <th className="px-4 py-3 text-right">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {dashboardData?.recentTransactions.map((tx: any) => (
+                  <tr key={tx._id} className="text-xs hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-4 font-mono font-bold text-slate-900">{tx.txId}</td>
+                    <td className="px-4 py-4 font-bold text-slate-700">{tx.assetTitle}</td>
+                    <td className="px-4 py-4">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${tx.type === 'License Purchase' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {tx.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 font-black text-indigo-600">₹{tx.amount.toLocaleString()}</td>
+                    <td className="px-4 py-4 text-slate-400 text-right">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

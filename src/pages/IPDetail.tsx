@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { renewIP, transferOwnership } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
-import { ArrowLeft, ShieldCheck, CheckCircle, Clock, Hash, Calendar, User, Tag, Gavel, ExternalLink, Download, IndianRupee, Hourglass, Trash2 } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, CheckCircle, Clock, Hash, Calendar, User, Tag, Gavel, ExternalLink, Download, IndianRupee, Hourglass, Trash2, Key, ShoppingCart, Edit3, Save, X, ArrowLeftRight, AlertTriangle } from 'lucide-react';
 
 interface IPDetail {
     _id: string;
@@ -22,6 +22,9 @@ interface IPDetail {
         email: string;
         walletAddress?: string;
     };
+    isAvailableForLicense?: boolean;
+    licensePrice?: number;
+    licenseType?: string;
 }
 
 const IPDetail: React.FC = () => {
@@ -41,11 +44,49 @@ const IPDetail: React.FC = () => {
     // Download State
     const [isDownloading, setIsDownloading] = useState(false);
 
+    // Licensing State
+    const [isEditingLicense, setIsEditingLicense] = useState(false);
+    const [licenseForm, setLicenseForm] = useState({
+        isAvailableForLicense: false,
+        licensePrice: 0,
+        licenseType: 'Non-Exclusive'
+    });
+    const [isUpdatingLicense, setIsUpdatingLicense] = useState(false);
+    const [isPurchasing, setIsPurchasing] = useState(false);
+    const [isRenewing, setIsRenewing] = useState(false);
+    const [userLicense, setUserLicense] = useState<any>(null);
+
+    // Transfer State
+    const [showTransferModal, setShowTransferModal] = useState(false);
+    const [transferEmail, setTransferEmail] = useState('');
+    const [isTransferring, setIsTransferring] = useState(false);
+
+    useEffect(() => {
+        if (ip) {
+            setLicenseForm({
+                isAvailableForLicense: ip.isAvailableForLicense || false,
+                licensePrice: ip.licensePrice || 0,
+                licenseType: ip.licenseType || 'Non-Exclusive'
+            });
+        }
+    }, [ip]);
+
     useEffect(() => {
         const fetchIpDetail = async () => {
             try {
                 const response = await api.get(`/ip/${id}`);
                 setIp(response.data);
+                
+                // Also fetch if user has a license
+                if (user) {
+                    try {
+                        const licenseRes = await api.get('/licenses/my-licenses');
+                        const activeLicense = licenseRes.data.find((l: any) => l.ipId?._id === id && l.status === 'Active');
+                        setUserLicense(activeLicense);
+                    } catch (e) {
+                        console.error("Failed to fetch licenses", e);
+                    }
+                }
             } catch (err: any) {
                 setError(err.response?.data?.message || 'Failed to load IP details.');
             } finally {
@@ -53,7 +94,7 @@ const IPDetail: React.FC = () => {
             }
         };
         fetchIpDetail();
-    }, [id]);
+    }, [id, user]);
 
     const handleFileDispute = async () => {
         if (!disputeEvidence.trim()) {
@@ -74,6 +115,40 @@ const IPDetail: React.FC = () => {
             alert(err.response?.data?.message || "Failed to file dispute.");
         } finally {
             setIsFilingDispute(false);
+        }
+    };
+
+    const handleUpdateLicenseSettings = async () => {
+        setIsUpdatingLicense(true);
+        try {
+            const response = await api.put(`/ip/${id}`, licenseForm);
+            // After update, backend returns nested { message, ip }
+            setIp(response.data.ip || response.data);
+            setIsEditingLicense(false);
+            alert("Licensing settings updated successfully!");
+        } catch (err: any) {
+            alert(err.response?.data?.message || "Failed to update settings.");
+        } finally {
+            setIsUpdatingLicense(false);
+        }
+    };
+
+    const handlePurchaseLicense = async () => {
+        if (!window.confirm(`Are you sure you want to purchase a 1-year license for ₹${ip?.licensePrice}?`)) return;
+
+        setIsPurchasing(true);
+        try {
+            await api.post('/licenses/purchase', {
+                ipId: id,
+                licenseType: ip?.licenseType,
+                durationYears: 1
+            });
+            alert("License mapping successful! You now have authorized access.");
+            window.location.reload();
+        } catch (err: any) {
+            alert(err.response?.data?.message || "Purchase failed.");
+        } finally {
+            setIsPurchasing(false);
         }
     };
 
@@ -113,6 +188,41 @@ const IPDetail: React.FC = () => {
                 alert(err.response?.data?.message || err.response?.data?.error || "Failed to delete IP");
                 setIsDeleting(false);
             }
+        }
+    };
+
+    const handleRenewIP = async () => {
+        if (!window.confirm("Renewing this asset for 1 year costs ₹1,000. Proceed?")) return;
+        
+        setIsRenewing(true);
+        try {
+            const response = await renewIP(id!, { durationYears: 1 });
+            setIp(response.data.ip);
+            alert("Asset renewed successfully for another year!");
+        } catch (err: any) {
+            alert(err.response?.data?.message || "Renewal failed.");
+        } finally {
+            setIsRenewing(false);
+        }
+    };
+
+    const handleTransferOwnership = async () => {
+        if (!transferEmail.trim()) {
+            alert("Please enter the new owner's email address.");
+            return;
+        }
+
+        if (!window.confirm(`Are you absolutely sure you want to transfer ownership of "${ip?.title}" to ${transferEmail}? You will lose all control over this asset.`)) return;
+
+        setIsTransferring(true);
+        try {
+            await transferOwnership(id!, { newOwnerEmail: transferEmail });
+            alert("Ownership transferred successfully!");
+            navigate('/ips');
+        } catch (err: any) {
+            alert(err.response?.data?.message || "Transfer failed.");
+        } finally {
+            setIsTransferring(false);
         }
     };
 
@@ -181,6 +291,16 @@ const IPDetail: React.FC = () => {
                             >
                                 <Trash2 size={18} />
                                 {isDeleting ? 'Deleting...' : 'Delete IP'}
+                            </button>
+                        )}
+                        {/* Transfer Button (Owner only) */}
+                        {user && user.id === ip.owner._id && ip.status === 'Approved' && (
+                            <button
+                                onClick={() => setShowTransferModal(true)}
+                                className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold px-4 py-2 rounded-xl text-sm flex items-center gap-2 transition-colors border border-indigo-100 shadow-sm"
+                            >
+                                <ArrowLeftRight size={18} />
+                                Transfer Ownership
                             </button>
                         )}
                     </div>
@@ -255,8 +375,19 @@ const IPDetail: React.FC = () => {
                                 </div>
                                 <div>
                                     <dt className="text-gray-500 font-medium">Expiration Threshold</dt>
-                                    <dd className="font-medium text-gray-900">
-                                        {ip.expirationDate ? new Date(ip.expirationDate).toLocaleDateString() : 'N/A'}
+                                    <dd className="flex flex-col items-start gap-1">
+                                        <span className="font-medium text-gray-900">
+                                            {ip.expirationDate ? new Date(ip.expirationDate).toLocaleDateString() : 'N/A'}
+                                        </span>
+                                        {user?.id === ip.owner._id && (
+                                            <button 
+                                                onClick={handleRenewIP}
+                                                disabled={isRenewing}
+                                                className="text-[10px] font-black uppercase text-indigo-600 hover:text-indigo-700 underline underline-offset-2"
+                                            >
+                                                {isRenewing ? 'Renewing...' : 'Renew Now'}
+                                            </button>
+                                        )}
                                     </dd>
                                 </div>
                                 <div>
@@ -271,6 +402,131 @@ const IPDetail: React.FC = () => {
                                 </div>
                             </dl>
                         </div>
+                    </div>
+
+                    {/* Licensing & Commercialization Section */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h4 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                <Key className="text-indigo-600" /> Licensing & Commercialization
+                            </h4>
+                            {user?.id === ip.owner._id && !isEditingLicense && (
+                                <button
+                                    onClick={() => setIsEditingLicense(true)}
+                                    className="text-indigo-600 hover:text-indigo-700 font-bold text-sm flex items-center gap-1"
+                                >
+                                    <Edit3 size={16} /> Edit Settings
+                                </button>
+                            )}
+                        </div>
+
+                        {isEditingLicense ? (
+                            <div className="space-y-4 bg-white p-5 rounded-xl border border-slate-200">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-bold text-slate-700">Available for Licensing</span>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={licenseForm.isAvailableForLicense}
+                                            onChange={(e) => setLicenseForm({ ...licenseForm, isAvailableForLicense: e.target.checked })}
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    </label>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Price (₹)</label>
+                                        <input
+                                            type="number"
+                                            value={licenseForm.licensePrice}
+                                            onChange={(e) => setLicenseForm({ ...licenseForm, licensePrice: Number(e.target.value) })}
+                                            className="w-full border border-slate-100 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">License Type</label>
+                                        <select
+                                            value={licenseForm.licenseType}
+                                            onChange={(e) => setLicenseForm({ ...licenseForm, licenseType: e.target.value })}
+                                            className="w-full border border-slate-100 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                                        >
+                                            <option value="Non-Exclusive">Non-Exclusive</option>
+                                            <option value="Exclusive">Exclusive</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 pt-2">
+                                    <button
+                                        onClick={handleUpdateLicenseSettings}
+                                        disabled={isUpdatingLicense}
+                                        className="flex-1 bg-indigo-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        {isUpdatingLicense ? 'Saving...' : <><Save size={16} /> Save Changes</>}
+                                    </button>
+                                    <button
+                                        onClick={() => setIsEditingLicense(false)}
+                                        className="px-4 bg-slate-100 text-slate-600 font-bold py-2 rounded-lg text-sm hover:bg-slate-200 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Availability</p>
+                                    <div className="flex items-center gap-2">
+                                        {ip.isAvailableForLicense ? (
+                                            <div className="flex items-center gap-2 text-emerald-600 font-bold">
+                                                <CheckCircle size={20} /> Currently Available
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2 text-slate-400 font-bold">
+                                                <X size={20} /> Not for License
+                                            </div>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-2">
+                                        {ip.isAvailableForLicense
+                                            ? "This asset can be licensed for commercial or personal use according to the terms below."
+                                            : "The owner has not opened this asset for licensing at this time."}
+                                    </p>
+                                </div>
+
+                                <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Licensing Tiers</p>
+                                        <div className="flex items-end gap-1 mb-1">
+                                            <span className="text-2xl font-black text-slate-900">₹{ip.licensePrice?.toLocaleString()}</span>
+                                            <span className="text-xs text-slate-500 font-medium pb-1">/ year</span>
+                                        </div>
+                                        <span className="inline-block px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded border border-indigo-100">
+                                            {ip.licenseType || 'Non-Exclusive'} Use
+                                        </span>
+                                    </div>
+
+                                    {user?.id !== ip.owner._id && ip.isAvailableForLicense && (
+                                        <div className="mt-4">
+                                            {userLicense ? (
+                                                <div className="bg-emerald-50 text-emerald-700 p-3 rounded-lg text-xs font-bold flex items-center gap-2 border border-emerald-100">
+                                                    <ShieldCheck size={16} /> You have an Active License
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={handlePurchaseLicense}
+                                                    disabled={isPurchasing}
+                                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-95"
+                                                >
+                                                    <ShoppingCart size={18} />
+                                                    {isPurchasing ? 'Processing...' : 'Purchase 12-Month License'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="bg-green-50 border border-green-200 rounded-lg p-5 flex items-start gap-4">

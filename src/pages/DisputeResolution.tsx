@@ -11,8 +11,9 @@ interface LiveDispute {
   filedBy: { _id: string, name: string, email: string };
   opponent: { _id: string, name: string, email: string };
   evidence: string;
-  status: 'Open' | 'Resolved' | 'Dismissed';
+  status: 'Open' | 'In Review' | 'Resolved' | 'Dismissed';
   notes: string;
+  decision: string;
   createdAt: string;
 }
 
@@ -22,6 +23,7 @@ export default function DisputeResolution() {
   const [disputes, setDisputes] = useState<LiveDispute[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [adminDecision, setAdminDecision] = useState('');
 
   useEffect(() => {
     const fetchDisputes = async () => {
@@ -37,14 +39,19 @@ export default function DisputeResolution() {
     fetchDisputes();
   }, []);
 
-  const handleCaseAction = async (id: string, newStatus: 'Resolved' | 'Dismissed') => {
+  const handleCaseAction = async (id: string, newStatus: 'Resolved' | 'Dismissed' | 'In Review') => {
     try {
-      await api.put(`/disputes/${id}`, { status: newStatus });
-      const updated = disputes.map(d => d._id === id ? { ...d, status: newStatus } : d);
+      await api.put(`/disputes/${id}`, { 
+        status: newStatus, 
+        decision: newStatus !== 'In Review' ? adminDecision : undefined 
+      });
+      const updated = disputes.map(d => d._id === id ? { ...d, status: newStatus, decision: adminDecision } : d);
       setDisputes(updated);
       if (selectedDispute && selectedDispute._id === id) {
-        setSelectedDispute({ ...selectedDispute, status: newStatus });
+        setSelectedDispute({ ...selectedDispute, status: newStatus, decision: adminDecision });
       }
+      setAdminDecision('');
+      alert(`Case ${newStatus} successfully.`);
     } catch (err) {
       console.error(`Failed to update dispute to ${newStatus}`, err);
       alert('Failed to update dispute status.');
@@ -199,8 +206,17 @@ export default function DisputeResolution() {
                     </div>
                   </div>
 
-                  {user?.role === 'Admin' && selectedDispute.status === 'Open' && (
+                  {user?.role === 'Admin' && (selectedDispute.status === 'Open' || selectedDispute.status === 'In Review') && (
                     <div className="pt-6 border-t border-slate-100 space-y-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Admin Verdict / Decision</label>
+                        <textarea
+                          value={adminDecision}
+                          onChange={(e) => setAdminDecision(e.target.value)}
+                          placeholder="Provide the rationale for your decision..."
+                          className="w-full border border-slate-200 rounded-2xl px-4 py-3 text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-300 min-h-[100px]"
+                        />
+                      </div>
                       <div className="grid grid-cols-2 gap-4">
                         <button
                           onClick={() => handleCaseAction(selectedDispute._id, 'Dismissed')}
@@ -214,6 +230,23 @@ export default function DisputeResolution() {
                         >
                           Resolve Case
                         </button>
+                      </div>
+                      {selectedDispute.status === 'Open' && (
+                        <button
+                          onClick={() => handleCaseAction(selectedDispute._id, 'In Review')}
+                          className="w-full py-2 bg-slate-100 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all"
+                        >
+                          Mark as In Review
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedDispute.decision && (
+                    <div className="pt-6 border-t border-slate-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Formal Verdict</p>
+                      <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
+                         <p className="text-xs text-emerald-800 font-medium leading-relaxed">{selectedDispute.decision}</p>
                       </div>
                     </div>
                   )}

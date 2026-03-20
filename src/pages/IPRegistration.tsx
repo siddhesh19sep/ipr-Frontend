@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Upload, FileText, Type, List, Tag, Shield, IndianRupee, Calendar } from 'lucide-react';
+import { Upload, FileText, Type, List, Tag, Shield, IndianRupee, Calendar, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 
 // Declare the Razorpay window object type for TypeScript
@@ -26,6 +26,11 @@ const IPRegistration: React.FC = () => {
     const [error, setError] = useState('');
     const [showMockPayment, setShowMockPayment] = useState(false);
     const [mockOrderData, setMockOrderData] = useState<any>(null);
+
+    // AI Scanner States
+    const [isScanning, setIsScanning] = useState(false);
+    const [scanState, setScanState] = useState<'idle' | 'scanning' | 'clean' | 'plagiarized'>('idle');
+    const [scanReport, setScanReport] = useState<any>(null);
 
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
@@ -72,13 +77,38 @@ const IPRegistration: React.FC = () => {
             return;
         }
 
-        // Clear old errors and open the Live Razorpay Payment Module
+        // Start AI Security Scan
         setError('');
+        setIsScanning(true);
+        setScanState('scanning');
+
         try {
-            await handlePaymentConfirm();
+            // Fake a beautiful 3-second minimum scan time for dramatic UX
+            const scanPromise = api.post('/ip/scan', { title, description });
+            const timerPromise = new Promise(resolve => setTimeout(resolve, 3000));
+            
+            const [scanRes] = await Promise.all([scanPromise, timerPromise]);
+            
+            if (!scanRes.data.isUnique) {
+                setScanState('plagiarized');
+                setScanReport(scanRes.data);
+                // We keep the modal open to show the red error
+                return;
+            }
+            
+            setScanState('clean');
+            // Wait 1.5 seconds on the green screen, then proceed to payment
+            setTimeout(() => {
+                setIsScanning(false);
+                setScanState('idle');
+                handlePaymentConfirm();
+            }, 1500);
+
         } catch (err: any) {
-            console.error("Caught in handleSubmit:", err);
-            alert("Unexpected error: " + err.message);
+            console.error(err);
+            setIsScanning(false);
+            setScanState('idle');
+            setError("Failed to run AI Security Scan. Please try again.");
         }
     };
 
@@ -414,6 +444,69 @@ const IPRegistration: React.FC = () => {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* AI Plagiarism Scanning Modal Override */}
+            {isScanning && (
+                <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 p-10 text-center animate-in fade-in zoom-in duration-300">
+                        {scanState === 'scanning' && (
+                            <div className="space-y-8">
+                                <div className="relative w-32 h-32 mx-auto">
+                                    <div className="absolute inset-0 border-4 border-indigo-50 rounded-full"></div>
+                                    <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+                                    <div className="absolute inset-0 m-auto w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center">
+                                        <Shield className="text-indigo-600 animate-pulse" size={32} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black text-slate-900 mb-2">AI Plagiarism Scanner</h3>
+                                    <p className="text-slate-500 font-medium leading-relaxed">Analyzing semantic patterns and cross-referencing your document against the global blockchain registry...</p>
+                                </div>
+                                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                                    <div className="bg-indigo-600 h-full animate-[progress_3s_ease-in-out_forwards] rounded-full" style={{ width: '100%' }}></div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {scanState === 'clean' && (
+                            <div className="space-y-6 animate-in fade-in zoom-in duration-300">
+                                <div className="w-32 h-32 mx-auto bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-inner">
+                                    <CheckCircle2 size={64} />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black text-emerald-600 mb-2">100% Unique Verified</h3>
+                                    <p className="text-slate-500 font-medium">Your Intellectual Property has passed all security checks. Proceeding to securely register...</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {scanState === 'plagiarized' && (
+                            <div className="space-y-6 animate-in fade-in zoom-in duration-300">
+                                <div className="w-32 h-32 mx-auto bg-rose-100 text-rose-600 rounded-full flex items-center justify-center shadow-inner">
+                                    <AlertTriangle size={64} />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black text-rose-600 mb-2">Plagiarism Detected</h3>
+                                    <p className="text-slate-600 font-medium mb-6">Our AI Scanner has blocked this submission because it matches <b>{Math.round(scanReport?.highestScore * 100)}%</b> with an existing protected asset.</p>
+                                    
+                                    <div className="bg-rose-50 border border-rose-100 p-5 rounded-2xl text-left mb-8 shadow-sm">
+                                        <p className="text-[10px] font-black text-rose-800 uppercase tracking-widest mb-1">Matched Record In Database</p>
+                                        <p className="font-bold text-slate-900 text-lg line-clamp-2">{scanReport?.matchedIP?.title}</p>
+                                        <p className="text-sm text-slate-500 mt-1 font-medium">Currently Owned by: <span className="text-slate-700 font-bold">{scanReport?.matchedIP?.ownerName}</span></p>
+                                    </div>
+
+                                    <button 
+                                        onClick={() => { setIsScanning(false); setScanState('idle'); }}
+                                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 px-4 rounded-2xl transition-all hover:-translate-y-1 shadow-lg hover:shadow-slate-900/20"
+                                    >
+                                        Modify Submission
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

@@ -2,13 +2,18 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
-import { Shield, User, Lock } from 'lucide-react';
+import { Shield, User, Lock, ArrowRight } from 'lucide-react';
+import { motion } from 'motion/react';
 
 const Login: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [otp, setOtp] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showOtpInput, setShowOtpInput] = useState(false);
+    const [unverifiedEmail, setUnverifiedEmail] = useState('');
+    const [resendMessage, setResendMessage] = useState('');
 
     const navigate = useNavigate();
     const { login } = useContext(AuthContext);
@@ -19,97 +24,268 @@ const Login: React.FC = () => {
         setError('');
 
         try {
+            setResendMessage('');
             const response = await api.post('/auth/login', { username, password });
             login(response.data.token, response.data.user);
-            // Let RootRedirect handle the role-based routing
-            navigate('/');
+            
+            // Role-based redirection logic
+            if (response.data.user.role === 'Admin') {
+                navigate('/admin-dashboard');
+            } else {
+                navigate('/ips');
+            }
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to login. Please try again.');
+            if (err.response?.data?.requiresVerification) {
+                setUnverifiedEmail(err.response.data.email);
+                setShowOtpInput(true);
+                setError('');
+            } else {
+                setError(err.response?.data?.message || 'Failed to login. Please try again.');
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleVerifyLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError('');
+
+        try {
+            const response = await api.post('/auth/verify-login', { email: unverifiedEmail, otp });
+            login(response.data.token, response.data.user);
+            
+            if (response.data.user.role === 'Admin') {
+                navigate('/admin-dashboard');
+            } else {
+                navigate('/ips');
+            }
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Failed to verify OTP. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleResendOtp = async () => {
+        setIsLoading(true);
+        setError('');
+        setResendMessage('');
+        try {
+            await api.post('/auth/send-otp', { email: unverifiedEmail, isLogin: true });
+            setResendMessage('A new verification code has been sent to your email.');
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Failed to resend OTP. Please try again.');
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="flex flex-col justify-center items-center min-h-[80vh]">
-            <div className="w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden">
-                <div className="bg-indigo-600 px-6 py-8 text-center">
-                    <Shield className="h-12 w-12 text-white mx-auto mb-4" />
-                    <h2 className="text-3xl font-extrabold text-white tracking-tight">Welcome Back</h2>
-                    <p className="text-indigo-200 mt-2 font-medium">Login to manage your Intellectual Property</p>
+        <div className="fixed inset-0 z-50 flex bg-white font-sans">
+            {/* Left Side (Image/Theme) */}
+            <div className="hidden lg:flex w-[45%] bg-slate-900 relative overflow-hidden flex-col justify-between">
+                <div className="absolute inset-0">
+                    <img 
+                        src="https://images.unsplash.com/photo-1639762681485-074b7f4ec651?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" 
+                        alt="Blockchain" 
+                        className="w-full h-full object-cover opacity-40 mix-blend-overlay"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-indigo-900/30"></div>
+                </div>
+                
+                <div className="relative z-10 p-12">
+                    <Link to="/" className="flex items-center gap-3 w-fit hover:opacity-80 transition-opacity">
+                        <div className="bg-white p-2.5 rounded-2xl shadow-lg shadow-white/10">
+                            <Shield className="h-8 w-8 text-indigo-600" />
+                        </div>
+                        <span className="font-extrabold text-3xl tracking-tight text-white drop-shadow-md">
+                            IPR<span className="text-indigo-400">Chain</span>
+                        </span>
+                    </Link>
                 </div>
 
-                <div className="px-8 py-10">
-                    {error && (
-                        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-6" role="alert">
-                            <p className="font-medium">{error}</p>
-                        </div>
-                    )}
+                <div className="relative z-10 p-12 pb-24">
+                    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+                        <span className="inline-block py-1.5 px-3 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-bold uppercase tracking-widest mb-6 backdrop-blur-sm shadow-sm">
+                            Authentication Gateway
+                        </span>
+                        <h1 className="text-5xl font-extrabold text-white mb-6 leading-tight drop-shadow-lg">
+                            Secure your digital legacy on the blockchain.
+                        </h1>
+                        <p className="text-lg text-slate-300 max-w-md leading-relaxed font-medium">
+                            Welcome back. Access your immutable intellectual property portfolio and track your global verification status in real-time.
+                        </p>
+                    </motion.div>
+                </div>
+            </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Username or Email</label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <User className="h-5 w-5 text-gray-400" />
+            {/* Right Side (Form) */}
+            <div className="w-full lg:w-[55%] flex items-center justify-center p-6 sm:p-12 lg:p-24 bg-white overflow-y-auto">
+                <div className="w-full max-w-md mx-auto">
+                    <motion.div 
+                        initial={{ opacity: 0, x: 20 }} 
+                        animate={{ opacity: 1, x: 0 }} 
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                    >
+                        <div className="text-center lg:text-left mb-10">
+                            <div className="lg:hidden flex justify-center mb-8">
+                                <div className="bg-indigo-50 p-4 rounded-3xl shadow-inner">
+                                    <Shield className="h-12 w-12 text-indigo-600" />
                                 </div>
-                                <input
-                                    type="text"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                    className="pl-10 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-3 bg-gray-50 border transition-colors"
-                                    placeholder="creator99 or you@example.com"
-                                    required
-                                />
                             </div>
+                            <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight mb-3">
+                                {showOtpInput ? 'Verify Email' : 'Welcome Back'}
+                            </h2>
+                            <p className="text-slate-500 text-lg font-medium">
+                                {showOtpInput ? 'Please enter the 6-digit code sent to your email.' : 'Please enter your details to sign in.'}
+                            </p>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Lock className="h-5 w-5 text-gray-400" />
+                        {error && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="bg-rose-50 border border-rose-100 text-rose-700 p-4 rounded-2xl mb-8 flex items-center gap-3 shadow-sm" role="alert">
+                                <div className="p-1 bg-rose-100 rounded-full shrink-0"><Lock size={14} className="text-rose-600"/></div>
+                                <p className="font-bold text-sm">{error}</p>
+                            </motion.div>
+                        )}
+                        
+                        {resendMessage && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="bg-emerald-50 border border-emerald-100 text-emerald-700 p-4 rounded-2xl mb-8 flex items-center gap-3 shadow-sm" role="alert">
+                                <p className="font-bold text-sm">{resendMessage}</p>
+                            </motion.div>
+                        )}
+
+                        {!showOtpInput ? (
+                            <>
+                                <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-slate-700">Username or Email</label>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-500">
+                                        <User className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        className="pl-12 block w-full bg-slate-50 border border-slate-200 rounded-2xl shadow-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white text-base px-4 py-3.5 transition-all text-slate-900 font-medium outline-none"
+                                        placeholder="creator99 or you@example.com"
+                                        required
+                                    />
                                 </div>
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="pl-10 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-3 bg-gray-50 border transition-colors"
-                                    placeholder="••••••••"
-                                    required
-                                />
                             </div>
-                        </div>
 
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all ${isLoading ? 'opacity-75 cursor-not-allowed' : 'transform hover:-translate-y-0.5'}`}
-                        >
-                            {isLoading ? (
-                                <span className="flex items-center gap-2">
-                                    <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Logging in...
-                                </span>
-                            ) : (
-                                'Sign In'
-                            )}
-                        </button>
-                    </form>
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                    <label className="block text-sm font-bold text-slate-700">Password</label>
+                                    <Link to="/forgot-password" className="text-sm font-bold text-indigo-600 hover:text-indigo-500 transition-colors">Forgot password?</Link>
+                                </div>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Lock className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                                    </div>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="pl-12 block w-full bg-slate-50 border border-slate-200 rounded-2xl shadow-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white text-base px-4 py-3.5 transition-all text-slate-900 font-medium outline-none"
+                                        placeholder="••••••••"
+                                        required
+                                    />
+                                </div>
+                            </div>
 
-                    <p className="mt-8 text-center text-sm text-gray-600">
-                        Don't have an account?{' '}
-                        <Link to="/register" className="font-bold text-indigo-600 hover:text-indigo-500">
-                            Register here
-                        </Link>
-                    </p>
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className={`w-full flex justify-center items-center gap-3 py-4 px-4 border border-transparent rounded-2xl shadow-lg text-base font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all ${isLoading ? 'opacity-75 cursor-not-allowed' : 'hover:-translate-y-1 hover:shadow-indigo-500/30 shadow-indigo-500/20'}`}
+                            >
+                                {isLoading ? (
+                                    <span className="flex items-center gap-2">
+                                        <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Authenticating Node...
+                                    </span>
+                                ) : (
+                                    <>
+                                        Log In
+                                    </>
+                                )}
+                            </button>
+                                </form>
+
+                                <div className="mt-10 relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <div className="w-full border-t border-slate-200"></div>
+                                    </div>
+                                    <div className="relative flex justify-center text-sm">
+                                        <span className="px-4 bg-white text-slate-400 font-bold uppercase tracking-widest text-xs">New to IPRChain?</span>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8 text-center">
+                                    <Link 
+                                        to="/register" 
+                                        className="inline-flex justify-center items-center w-full py-4 px-4 border-2 border-slate-200 rounded-2xl text-base font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all"
+                                    >
+                                        Create an Account
+                                    </Link>
+                                </div>
+                            </>
+                        ) : (
+                            <form onSubmit={handleVerifyLogin} className="space-y-5">
+                                <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-2xl mb-6 text-center">
+                                    <p className="text-sm font-medium text-indigo-800">
+                                        We've sent a 6-digit verification code to <strong>{unverifiedEmail}</strong>.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest text-center">Enter Verification Code</label>
+                                    <input 
+                                        type="text" 
+                                        value={otp} 
+                                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').substring(0, 6))}
+                                        className="block w-full text-center tracking-[0.5em] font-mono text-2xl bg-slate-50 border border-slate-200 rounded-2xl shadow-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white px-4 py-4 transition-all text-slate-900 font-bold outline-none" 
+                                        placeholder="000000" 
+                                        maxLength={6}
+                                        required 
+                                    />
+                                </div>
+
+                                <button type="submit" disabled={isLoading || otp.length !== 6} className={`w-full flex justify-center items-center gap-3 py-4 px-4 border border-transparent rounded-2xl shadow-lg text-base font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all mt-6 ${isLoading || otp.length !== 6 ? 'opacity-75 cursor-not-allowed' : 'hover:-translate-y-1 hover:shadow-indigo-500/30'}`}>
+                                    {isLoading ? (
+                                        <span className="flex items-center gap-2">
+                                            <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                            Verifying...
+                                        </span>
+                                    ) : (
+                                        <>Log In to IPRChain</>
+                                    )}
+                                </button>
+                                
+                                <div className="flex justify-between items-center w-full mt-4">
+                                    <button type="button" onClick={() => setShowOtpInput(false)} className="text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors">
+                                        &larr; Use a different account
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        onClick={handleResendOtp}
+                                        disabled={isLoading}
+                                        className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors disabled:opacity-50"
+                                    >
+                                        Resend OTP
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+                    </motion.div>
                 </div>
             </div>
         </div>
     );
 };
-
 export default Login;

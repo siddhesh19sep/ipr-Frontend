@@ -123,7 +123,7 @@ export default function Settings() {
             <div className="flex items-center gap-6">
               <div className="w-20 h-20 bg-indigo-100 rounded-3xl flex items-center justify-center text-indigo-600 text-2xl font-bold overflow-hidden shadow-inner">
                 {user?.avatarUrl ? (
-                  <img src={"https://ipr-backend-u4al.onrender.com" + user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={"https://ipr-backend-1-2llk.onrender.com" + user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
                   name ? name.substring(0, 2).toUpperCase() : 'US'
                 )}
