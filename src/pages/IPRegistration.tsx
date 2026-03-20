@@ -141,6 +141,38 @@ const IPRegistration: React.FC = () => {
                 name: "Blockchain IPR",
                 description: `IP Registration for ${years} years`,
                 order_id: order.id,
+                config: {
+                    display: {
+                        blocks: {
+                            upi: {
+                                name: "UPI (GPay, Paytm, PhonePe)",
+                                instruments: [
+                                    { method: "upi" }
+                                ]
+                            },
+                            cards: {
+                                name: "Credit / Debit Cards",
+                                instruments: [
+                                    { method: "card" }
+                                ]
+                            },
+                            wallets: {
+                                name: "Digital Wallets",
+                                instruments: [
+                                    { method: "wallet" }
+                                ]
+                            },
+                            netbanking: {
+                                name: "Netbanking",
+                                instruments: [
+                                    { method: "netbanking" }
+                                ]
+                            }
+                        },
+                        sequence: ["block.upi", "block.cards", "block.wallets", "block.netbanking"],
+                        preferences: { show_default_blocks: false }
+                    }
+                },
                 handler: async function (response: any) {
                     try {
                         // 3. Verify Payment Signature securely on the Backend

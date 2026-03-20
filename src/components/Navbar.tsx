@@ -74,6 +74,12 @@ const Navbar: React.FC = () => {
                     <div className="flex items-center">
                         {isAuthenticated && user ? (
                             <div className="flex items-center gap-4">
+                                <Link
+                                    to="/register-ip"
+                                    className="hidden lg:inline-flex items-center px-4 py-2 text-sm font-bold rounded-xl shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-emerald-200"
+                                >
+                                    + Register IP
+                                </Link>
                                 <div className="text-sm font-medium text-gray-500 px-2 lg:border-l border-gray-300">
                                     <span className="bg-indigo-50 text-indigo-700 py-1 px-3 rounded-full text-xs font-bold uppercase tracking-wider">
                                         {user.role}
