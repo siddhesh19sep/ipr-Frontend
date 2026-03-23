@@ -12,6 +12,7 @@ interface IPDetail {
     status: string;
     fileHash: string;
     fileData?: string;
+    gridFsId?: string;
     txHash?: string;
     registrationCost?: number;
     expirationDate?: string;
@@ -616,7 +617,7 @@ const IPDetail: React.FC = () => {
 
                             {ip.fileHash?.startsWith('Qm') || ip.fileHash?.startsWith('b') ? (
                                 <div className="space-y-2">
-                                    {ip.fileData || !ip.fileHash?.startsWith('QmMock') ? (
+                                    {ip.gridFsId || ip.fileData || !ip.fileHash?.startsWith('QmMock') ? (
                                         <a
                                             href={ip.fileData || `https://gateway.pinata.cloud/ipfs/${ip.fileHash}`}
                                             target="_blank"
