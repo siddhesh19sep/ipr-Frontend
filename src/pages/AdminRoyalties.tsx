@@ -60,7 +60,7 @@ export default function AdminRoyalties() {
     .reduce((acc, tx) => acc + Math.abs(tx.amount), 0);
 
   const filteredTransactions = transactions.filter(tx => 
-    tx.txId.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (tx.txId && tx.txId.toLowerCase().includes(searchTerm.toLowerCase())) || 
     (tx.assetTitle && tx.assetTitle.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -215,15 +215,15 @@ export default function AdminRoyalties() {
                     >
                       <td className="px-8 py-5">
                         <div className="flex flex-col">
-                          <span className="font-bold text-slate-900 text-sm mb-0.5">{tx.txId}</span>
+                          <span className="font-bold text-slate-900 text-sm mb-0.5">{tx.txId || 'LEGACY_TX'}</span>
                           <span className="text-xs text-slate-500 font-medium">
-                            {new Date(tx.createdAt).toLocaleDateString(undefined, {
+                            {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString(undefined, {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric',
                               hour: '2-digit',
                               minute: '2-digit'
-                            })}
+                            }) : 'N/A'}
                           </span>
                         </div>
                       </td>
