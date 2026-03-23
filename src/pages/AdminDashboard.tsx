@@ -295,7 +295,7 @@ export default function AdminDashboard() {
       </section>
 
       {/* Royalty & Transaction History */}
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden mb-8">
+      <div id="royalties" className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden mb-8">
         <div className="p-8 border-b border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="flex items-center gap-3">
             <h3 className="font-bold text-slate-900">Platform Royalty History</h3>
