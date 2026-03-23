@@ -294,69 +294,14 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* Royalty & Transaction History */}
-      <div id="royalties" className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden mb-8">
-        <div className="p-8 border-b border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h3 className="font-bold text-slate-900">Platform Royalty History</h3>
-            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">Live Ledger</span>
-          </div>
+      {/* Recent Activity */}
+      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden mb-8">
+        <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+          <h3 className="font-bold text-slate-900">Recent Activity</h3>
+          <button onClick={() => navigate('/ips')} className="text-sm font-bold text-indigo-600 hover:underline">View All</button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">ID & Date</th>
-                <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Asset / Description</th>
-                <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Type</th>
-                <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Amount</th>
-                <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {!dashboardData?.recentTransactions || dashboardData.recentTransactions.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-16 text-slate-500 font-medium text-sm">
-                    No transactions recorded on the platform yet.
-                  </td>
-                </tr>
-              ) : dashboardData.recentTransactions.map((tx: any) => (
-                <tr key={tx._id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-8 py-5">
-                    <p className="text-xs font-bold text-slate-900 mb-0.5">{tx.txId}</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">
-                      {new Date(tx.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </p>
-                  </td>
-                  <td className="px-8 py-5">
-                    <p className="text-xs font-bold text-slate-700">{tx.assetTitle || "Platform Registration"}</p>
-                  </td>
-                  <td className="px-8 py-5">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      tx.type === 'Platform Income' ? 'bg-indigo-50 text-indigo-600' :
-                      tx.type === 'Usage Royalty' || tx.type === 'License Fee' ? 'bg-emerald-50 text-emerald-600' :
-                      'bg-amber-50 text-amber-600'
-                    }`}>
-                        {tx.type}
-                    </span>
-                  </td>
-                  <td className="px-8 py-5">
-                    <p className={`text-xs font-extrabold flex items-center gap-1 ${
-                        tx.amount < 0 ? 'text-rose-600' : 'text-emerald-600'
-                    }`}>
-                        {tx.amount < 0 ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />}
-                        ₹{Math.abs(tx.amount).toLocaleString()}
-                    </p>
-                  </td>
-                  <td className="px-8 py-5">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600`}>
-                      {tx.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="p-8 text-center text-slate-500 text-sm">
+          Please check the Verification Dashboard or IP Registry to view active platform registrations.
         </div>
       </div>
     </div>

@@ -16,9 +16,10 @@ import IPListing from './pages/IPListing';
 import IPDetail from './pages/IPDetail';
 import VerificationModule from './pages/VerificationModule';
 import DisputeResolution from './pages/DisputeResolution';
+import Settings from './pages/Settings';
+import AdminRoyalties from './pages/AdminRoyalties';
 import FileDispute from './pages/FileDispute';
 import Payments from './pages/Payments';
-import Settings from './pages/Settings';
 import PublicVerification from './pages/PublicVerification';
 import LandingPage from './pages/LandingPage';
 import ForgotPassword from './pages/ForgotPassword';
@@ -135,6 +136,14 @@ function AppContent() {
                                 element={
                                     <RoleProtectedRoute allowedRoles={['Admin']}>
                                         <VerificationModule />
+                                    </RoleProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/admin-royalties"
+                                element={
+                                    <RoleProtectedRoute allowedRoles={['Admin']}>
+                                        <AdminRoyalties />
                                     </RoleProtectedRoute>
                                 }
                             />
