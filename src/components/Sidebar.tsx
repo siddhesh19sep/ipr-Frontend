@@ -23,10 +23,10 @@ const Sidebar: React.FC = () => {
 
     const navItems = isAdminView ? [
         { name: 'System Overview', path: '/admin-dashboard', icon: Home },
-        { name: 'Royalty History', path: '/admin-dashboard#royalties', icon: Clock },
         { name: 'Verification Queue', path: '/verification', icon: ShieldCheck },
         { name: 'Dispute Queue', path: '/disputes', icon: Gavel },
         { name: 'IP Registry', path: '/ips', icon: Search },
+        { name: 'Royalty History', path: '/admin-dashboard#royalties', icon: Clock },
     ] : [
         { name: 'Dashboard', path: '/dashboard', icon: Home },
         { name: 'Register IP', path: '/register-ip', icon: FileText },
