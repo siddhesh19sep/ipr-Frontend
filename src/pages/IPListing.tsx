@@ -13,6 +13,7 @@ interface IPItem {
         _id: string;
         name: string;
     };
+    isAvailableForLicense?: boolean;
 }
 
 const IPListing: React.FC = () => {
@@ -24,7 +25,7 @@ const IPListing: React.FC = () => {
     useEffect(() => {
         const fetchIps = async () => {
             try {
-                const response = await api.get('/ip/all');
+                const response = await api.get('/ip/all?marketplace=true');
                 setIps(response.data);
             } catch (error) {
                 console.error("Failed to fetch IPs", error);
@@ -118,6 +119,11 @@ const IPListing: React.FC = () => {
                                     {ip.status === 'Rejected' && (
                                         <span className="inline-flex items-center text-xs font-medium text-red-600">
                                             <XCircle className="mr-1 h-4 w-4" /> Rejected
+                                        </span>
+                                    )}
+                                    {ip.isAvailableForLicense && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-indigo-600 text-white ml-2">
+                                            Licensing Available
                                         </span>
                                     )}
                                 </div>

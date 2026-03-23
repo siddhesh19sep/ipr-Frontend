@@ -129,7 +129,7 @@ const LandingPage: React.FC = () => {
                     <div className="bg-slate-900/50 rounded-[3rem] border border-white/5 p-8 lg:p-16 relative z-10 backdrop-blur-sm">
                         <div className="grid lg:grid-cols-5 gap-16 items-center">
                             <div className="lg:col-span-2 space-y-8">
-                                <h2 className="text-4xl font-bold text-white leading-tight">Designed for the Next Generation of Creators</h2>
+                                <h2 className="text-4xl font-bold text-white leading-tight">Designed for the Next Generation of Users</h2>
                                 <p className="text-slate-400 leading-relaxed">
                                     Our interface combines high-performance data tracking with a beautiful glassmorphism aesthetic, ensuring you can manage your IPR portfolio with surgical precision and visual excellence.
                                 </p>
@@ -169,7 +169,7 @@ const LandingPage: React.FC = () => {
             <section className="py-24 text-center">
                 <div className="max-w-4xl mx-auto px-6 space-y-8">
                     <h2 className="text-4xl lg:text-6xl font-extrabold text-white tracking-tight">Ready to Secure Your Work?</h2>
-                    <p className="text-xl text-slate-400">Join thousands of creators protecting their legacy on the blockchain.</p>
+                    <p className="text-xl text-slate-400">Join thousands of users protecting their legacy on the blockchain.</p>
                     <div className="pt-4">
                         <Link to="/register" className="bg-white text-slate-950 px-10 py-5 rounded-2xl font-extrabold text-xl hover:bg-slate-100 transition-all shadow-2xl shadow-white/10 active:scale-95">
                             Create Free Account

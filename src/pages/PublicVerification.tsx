@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, ShieldCheck, FileText, CheckCircle2, Clock, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { BACKEND_ROOT_URL } from '../services/api';
 
 interface VerificationResult {
     title: string;
@@ -34,7 +35,7 @@ const PublicVerification: React.FC = () => {
 
         try {
             // Note: This API call relies on the standard fetch because we don't want to use the authenticated `api.ts` instance
-            const response = await fetch(`https://ipr-backend-u4al.onrender.com/api/ip/public/verify/${searchQuery}`);
+            const response = await fetch(`${BACKEND_ROOT_URL}/api/ip/public/verify/${searchQuery}`);
             const data = await response.json();
 
             if (!response.ok) {

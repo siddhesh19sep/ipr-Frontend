@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api, { renewIP, transferOwnership } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
-import { ArrowLeft, ShieldCheck, CheckCircle, Clock, Hash, Calendar, User, Tag, Gavel, ExternalLink, Download, IndianRupee, Hourglass, Trash2, Key, ShoppingCart, Edit3, Save, X, ArrowLeftRight, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, CheckCircle, Clock, Hash, Calendar, User, Tag, Gavel, ExternalLink, Download, IndianRupee, Hourglass, Trash2, Key, ShoppingCart, Edit3, Save, X, ArrowLeftRight, AlertTriangle, Mail } from 'lucide-react';
 
 interface IPDetail {
     _id: string;
@@ -11,6 +11,7 @@ interface IPDetail {
     category: string;
     status: string;
     fileHash: string;
+    fileData?: string;
     txHash?: string;
     registrationCost?: number;
     expirationDate?: string;
@@ -52,6 +53,8 @@ const IPDetail: React.FC = () => {
         licenseType: 'Non-Exclusive'
     });
     const [isUpdatingLicense, setIsUpdatingLicense] = useState(false);
+    const [isUpdatingProof, setIsUpdatingProof] = useState(false);
+    const [proofFile, setProofFile] = useState<File | null>(null);
     const [isPurchasing, setIsPurchasing] = useState(false);
     const [isRenewing, setIsRenewing] = useState(false);
     const [userLicense, setUserLicense] = useState<any>(null);
@@ -62,20 +65,15 @@ const IPDetail: React.FC = () => {
     const [isTransferring, setIsTransferring] = useState(false);
 
     useEffect(() => {
-        if (ip) {
-            setLicenseForm({
-                isAvailableForLicense: ip.isAvailableForLicense || false,
-                licensePrice: ip.licensePrice || 0,
-                licenseType: ip.licenseType || 'Non-Exclusive'
-            });
-        }
-    }, [ip]);
-
-    useEffect(() => {
         const fetchIpDetail = async () => {
             try {
-                const response = await api.get(`/ip/${id}`);
-                setIp(response.data);
+                const res = await api.get(`/ip/${id}`);
+                setIp(res.data.ip || res.data);
+                setLicenseForm({
+                    isAvailableForLicense: res.data.isAvailableForLicense || false,
+                    licensePrice: res.data.licensePrice || 0,
+                    licenseType: res.data.licenseType || 'Non-Exclusive'
+                });
                 
                 // Also fetch if user has a license
                 if (user) {
@@ -119,17 +117,41 @@ const IPDetail: React.FC = () => {
     };
 
     const handleUpdateLicenseSettings = async () => {
+        if (!ip) return;
         setIsUpdatingLicense(true);
         try {
-            const response = await api.put(`/ip/${id}`, licenseForm);
-            // After update, backend returns nested { message, ip }
-            setIp(response.data.ip || response.data);
+            const res = await api.put(`/ip/${ip._id}`, licenseForm);
+            const updated = res.data.ip || res.data;
+            setIp(updated);
             setIsEditingLicense(false);
             alert("Licensing settings updated successfully!");
         } catch (err: any) {
-            alert(err.response?.data?.message || "Failed to update settings.");
+            alert(err.response?.data?.message || "Failed to update licensing settings.");
         } finally {
             setIsUpdatingLicense(false);
+        }
+    };
+
+    const handleUpdateProof = async () => {
+        if (!ip || !proofFile) return;
+        setIsUpdatingProof(true);
+        try {
+            const fileContent = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => resolve(event.target?.result as string);
+                reader.onerror = (error) => reject(error);
+                reader.readAsDataURL(proofFile);
+            });
+
+            const res = await api.put(`/ip/${ip._id}`, { fileContent });
+            const updated = res.data.ip || res.data;
+            setIp(updated);
+            setProofFile(null);
+            alert("Document proof updated successfully! You can now inspect the file.");
+        } catch (err: any) {
+            alert(err.response?.data?.message || "Failed to update document proof.");
+        } finally {
+            setIsUpdatingProof(false);
         }
     };
 
@@ -153,26 +175,71 @@ const IPDetail: React.FC = () => {
     };
 
     const handleDownloadDocument = async () => {
-        if (!ip?.fileHash) return;
+        if (!ip) return;
+        const targetContent = ip.fileData;
+        const targetHash = ip.fileHash;
 
         setIsDownloading(true);
         try {
-            const response = await fetch(`https://gateway.pinata.cloud/ipfs/${ip.fileHash}`);
-            const data = await response.json();
+            let content = targetContent;
 
-            if (data.fileContent) {
+            // MUST ALWAYS FETCH missing or large file data from backend first
+            if (!content || content === 'LARGE_FILE_STORED_IN_GRIDFS') {
+                try {
+                    const fileRes = await api.get(`/ip/${id}/file`);
+                    content = fileRes.data.fileData;
+                } catch (e: any) {
+                    if (e.response && e.response.status === 403) {
+                        alert("Access Denied: You must be the original owner or hold an active license to download this document.");
+                        setIsDownloading(false);
+                        return;
+                    }
+                    console.error("Failed to lazy-load file content", e);
+                }
+            }
+
+            // Only attempt external fetch if it's NOT a mock, NOT restored, and we STILL don't have local data
+            if (!content && targetHash && !targetHash.startsWith('QmMock') && !targetHash.startsWith('QmRestored')) {
+                const response = await fetch(`https://gateway.pinata.cloud/ipfs/${targetHash}`);
+                if (!response.ok) throw new Error("Gateway responded with error");
+                // Note: Assuming the gateway returns the file content directly for non-mocks
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
-                link.href = data.fileContent;
+                link.href = url;
                 link.download = `${ip.title.replace(/\s+/g, '_')}_IPR_Document`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                return;
+            }
+
+            if (content) {
+                const link = document.createElement('a');
+                link.href = content;
+                
+                // Extract file extension from data URI if possible
+                let extension = "";
+                if (content.startsWith("data:")) {
+                    const mimeType = content.split(';')[0].split(':')[1];
+                    if (mimeType === 'application/pdf') extension = ".pdf";
+                    else if (mimeType === 'image/jpeg') extension = ".jpg";
+                    else if (mimeType === 'image/png') extension = ".png";
+                    else if (mimeType === 'text/plain') extension = ".txt";
+                    else if (mimeType.includes('/')) extension = "." + mimeType.split('/')[1];
+                }
+                
+                link.download = `${ip.title.replace(/\s+/g, '_')}_IPR_Document${extension}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             } else {
-                alert('No document data found in IPFS metadata.');
+                alert('Migration Alert: No document content found on server. Please use the "Restore Proof" tool below to re-upload the original document.');
             }
         } catch (error) {
             console.error('Failed to download document:', error);
-            alert('Failed to fetch document from IPFS network.');
+            alert('Failed to fetch document from the IPFS gateway. Please check your connection.');
         } finally {
             setIsDownloading(false);
         }
@@ -438,10 +505,16 @@ const IPDetail: React.FC = () => {
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 mb-1">Price (₹)</label>
                                         <input
-                                            type="number"
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
                                             value={licenseForm.licensePrice}
-                                            onChange={(e) => setLicenseForm({ ...licenseForm, licensePrice: Number(e.target.value) })}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/\D/g, '');
+                                                setLicenseForm({ ...licenseForm, licensePrice: val === '' ? 0 : parseInt(val, 10) });
+                                            }}
                                             className="w-full border border-slate-100 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                                            placeholder="Enter amount (₹)"
                                         />
                                     </div>
                                     <div>
@@ -543,16 +616,42 @@ const IPDetail: React.FC = () => {
 
                             {ip.fileHash?.startsWith('Qm') || ip.fileHash?.startsWith('b') ? (
                                 <div className="space-y-2">
-                                    <a
-                                        href={`https://gateway.pinata.cloud/ipfs/${ip.fileHash}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="bg-white border text-center border-green-200 rounded p-3 font-mono text-sm text-green-800 break-all shadow-inner hover:bg-green-100 transition-colors flex items-center justify-between"
-                                        title="View Raw IPFS Metadata"
-                                    >
-                                        <span>{ip.fileHash}</span>
-                                        <ExternalLink className="h-4 w-4 ml-2 flex-shrink-0" />
-                                    </a>
+                                    {ip.fileData || !ip.fileHash?.startsWith('QmMock') ? (
+                                        <a
+                                            href={ip.fileData || `https://gateway.pinata.cloud/ipfs/${ip.fileHash}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="bg-white border text-center border-green-200 rounded p-3 font-mono text-sm text-green-800 break-all shadow-inner hover:bg-green-100 transition-colors flex items-center justify-between"
+                                            title="View Document Content"
+                                        >
+                                            <span>{ip.fileHash}</span>
+                                            <ExternalLink className="h-4 w-4 ml-2 flex-shrink-0" />
+                                        </a>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <div className="bg-amber-50 border border-amber-100 rounded p-3 font-mono text-xs text-amber-700 break-all shadow-inner flex items-center gap-2">
+                                                <AlertTriangle size={14} /> Migration Alert: Original document not found. This is a legacy registration.
+                                            </div>
+                                            {user?.id === ip.owner._id && (
+                                                <div className="bg-white border-2 border-dashed border-amber-200 rounded-lg p-4 text-center">
+                                                    <p className="text-[10px] font-bold text-amber-600 mb-2 uppercase tracking-wider">Owner Action Required: Restore Proof</p>
+                                                    <input 
+                                                        type="file" 
+                                                        onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                                                        className="text-[10px] text-slate-500 mb-2 block mx-auto"
+                                                        accept=".pdf,.doc,.docx,.txt"
+                                                    />
+                                                    <button
+                                                        onClick={handleUpdateProof}
+                                                        disabled={isUpdatingProof || !proofFile}
+                                                        className={`w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 ${(!proofFile || isUpdatingProof) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    >
+                                                        {isUpdatingProof ? 'Synchronizing...' : <><Save size={16} /> Link Original Document to Registry</>}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                     <button
                                         onClick={handleDownloadDocument}
                                         disabled={isDownloading}
@@ -629,6 +728,84 @@ const IPDetail: React.FC = () => {
                             >
                                 {isFilingDispute ? 'Submitting...' : 'Submit Dispute Claim'}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Transfer Ownership Modal */}
+            {showTransferModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl relative overflow-hidden border border-slate-100">
+                        {/* Background Decor */}
+                        <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-50 rounded-full blur-3xl opacity-50"></div>
+                        
+                        <button
+                            onClick={() => setShowTransferModal(false)}
+                            className="absolute top-6 right-6 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 p-2 rounded-xl transition-all"
+                        >
+                            ✕
+                        </button>
+
+                        <div className="flex items-center gap-4 mb-8 relative z-10">
+                            <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                                <ArrowLeftRight size={28} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900">Transfer IP Ownership</h3>
+                                <p className="text-xs text-slate-500 font-medium">Permanently transfer {ip.title} to another user</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6 relative z-10">
+                            <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-start gap-3">
+                                <AlertTriangle className="text-amber-600 mt-0.5" size={18} />
+                                <p className="text-[11px] text-amber-800 font-semibold leading-relaxed">
+                                    CAUTION: This action is irreversible. Once the transfer is complete, you will lose all control and ownership of this intellectual property.
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Recipient Identity (Email)</label>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Mail className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                                    </div>
+                                    <input
+                                        type="email"
+                                        value={transferEmail}
+                                        onChange={(e) => setTransferEmail(e.target.value)}
+                                        className="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                                        placeholder="Enter registered user email..."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-2">
+                                <button
+                                    onClick={handleTransferOwnership}
+                                    disabled={isTransferring || !transferEmail}
+                                    className="w-full bg-indigo-600 text-white font-black rounded-2xl py-4 hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 group transform active:scale-[0.98]"
+                                >
+                                    {isTransferring ? (
+                                        <>
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                            <span>Processing Blockchain TX...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ShieldCheck size={20} className="group-hover:rotate-12 transition-transform" />
+                                            <span>Execute Ownership Transfer</span>
+                                        </>
+                                    )}
+                                </button>
+                                <button 
+                                    onClick={() => setShowTransferModal(false)}
+                                    className="w-full mt-3 text-xs font-bold text-slate-400 hover:text-slate-600 py-2 transition-colors"
+                                >
+                                    Cancel & Return to Details
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

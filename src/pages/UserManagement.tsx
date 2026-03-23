@@ -19,7 +19,7 @@ export default function UserManagement() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">User Management</h1>
-          <p className="text-slate-500 text-sm">Manage registered creators and system users</p>
+          <p className="text-slate-500 text-sm">Manage registered platform users</p>
         </div>
         <button className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2">
           <UserPlus size={18} />
@@ -47,8 +47,8 @@ export default function UserManagement() {
           <select className="flex-1 md:w-40 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 bg-white outline-none">
             <option>All Roles</option>
             <option>Admin</option>
-            <option>Creator</option>
             <option>User</option>
+            <option>Verifier</option>
           </select>
         </div>
       </div>
@@ -95,8 +95,7 @@ export default function UserManagement() {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                      user.role === 'Admin' ? 'bg-indigo-50 text-indigo-600' : 
-                      user.role === 'Creator' ? 'bg-purple-50 text-purple-600' : 'bg-slate-100 text-slate-600'
+                      user.role === 'Admin' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-600'
                     }`}>
                       {user.role}
                     </span>

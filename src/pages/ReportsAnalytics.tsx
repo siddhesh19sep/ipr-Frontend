@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -12,11 +13,40 @@ import {
   Area,
   Legend
 } from 'recharts';
-import { Download, FileText, Calendar, Filter, ArrowUpRight, TrendingUp, PieChart as PieChartIcon } from 'lucide-react';
+import { Download, FileText, Calendar, Filter, ArrowUpRight, TrendingUp, PieChart as PieChartIcon, Clock, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
-import { CHART_DATA } from '../constants';
+import api from '../services/api';
 
 export default function ReportsAnalytics() {
+  const [data, setData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const res = await api.get('/dashboard/admin');
+        setData(res.data);
+      } catch (err) {
+        console.error("Failed to load analytics", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAnalytics();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  const revenueData = data?.stats.revenueTrend || [];
+  const registrationData = data?.stats.registrationsTrend || [];
+  const categoryData = data?.categories || [];
+
   return (
     <div className="space-y-8 pb-12">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -25,10 +55,10 @@ export default function ReportsAnalytics() {
           <p className="text-slate-500 text-sm">Deep insights into system performance and revenue</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all bg-white">
-            <Calendar size={18} />
-            <span>Last 30 Days</span>
-          </button>
+          <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl">
+             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+             <span className="text-xs font-bold text-slate-500">Live Ledger Feed</span>
+          </div>
           <button className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2">
             <Download size={18} />
             <span>Export Report</span>
@@ -40,15 +70,15 @@ export default function ReportsAnalytics() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           { title: 'Avg. Verification Time', value: '1.4 Days', icon: Clock, trend: '-12%', color: 'text-indigo-600', bg: 'bg-indigo-50' },
-          { title: 'Revenue Growth', value: '₹12.4L', icon: TrendingUp, trend: '+24%', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { title: 'Dispute Rate', value: '0.8%', icon: AlertTriangle, trend: '-2%', color: 'text-rose-600', bg: 'bg-rose-50' },
+          { title: 'Platform Income', value: `₹${(data?.stats.registrationRevenue || 0).toLocaleString()}`, icon: TrendingUp, trend: '+24%', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { title: 'Pending Verifications', value: data?.stats.pendingApprovals || 0, icon: AlertTriangle, trend: 'Active', color: 'text-rose-600', bg: 'bg-rose-50' },
         ].map((item, idx) => (
           <div key={idx} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className={`w-12 h-12 ${item.bg} ${item.color} rounded-2xl flex items-center justify-center`}>
                 <item.icon size={24} />
               </div>
-              <span className={`text-xs font-bold px-2 py-1 rounded-lg ${item.trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+              <span className={`text-xs font-bold px-2 py-1 rounded-lg ${item.trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-500'}`}>
                 {item.trend}
               </span>
             </div>
@@ -64,23 +94,19 @@ export default function ReportsAnalytics() {
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="font-bold text-slate-900">Revenue & Royalty Trends</h3>
-              <p className="text-xs text-slate-500">Monthly breakdown of platform earnings in INR</p>
+              <h3 className="font-bold text-slate-900">Platform Income Trend</h3>
+              <p className="text-xs text-slate-500">Monthly breakdown of registration fees collected</p>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-indigo-600 rounded-full" />
-                <span className="text-xs font-medium text-slate-600">Total Revenue</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-indigo-200 rounded-full" />
-                <span className="text-xs font-medium text-slate-600">Royalty Paid</span>
+                <span className="text-xs font-medium text-slate-600">Platform Income</span>
               </div>
             </div>
           </div>
           <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={CHART_DATA.royalty}>
+              <AreaChart data={revenueData.length > 0 ? revenueData : [{ month: 'N/A', amount: 0 }]}>
                 <defs>
                   <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
@@ -89,9 +115,10 @@ export default function ReportsAnalytics() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(val) => `₹${val/1000}k`} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(val) => `₹${val>=1000 ? (val/1000).toFixed(1)+'k' : val}`} />
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  formatter={(val: any) => [`₹${val.toLocaleString()}`, 'Income']}
                 />
                 <Area type="monotone" dataKey="amount" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
               </AreaChart>
@@ -105,7 +132,7 @@ export default function ReportsAnalytics() {
             <h3 className="font-bold text-slate-900 mb-8">Registration Velocity</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={CHART_DATA.registrations}>
+                <LineChart data={registrationData.length > 0 ? registrationData : [{ month: 'N/A', count: 0 }]}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
@@ -120,49 +147,36 @@ export default function ReportsAnalytics() {
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
             <h3 className="font-bold text-slate-900 mb-8">Category-wise Analysis</h3>
             <div className="space-y-6">
-              {CHART_DATA.categories.map((cat, idx) => (
-                <div key={idx}>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-xs font-bold text-slate-700">{cat.name}</span>
-                    <span className="text-xs font-bold text-indigo-600">{cat.value}%</span>
+              {categoryData.length === 0 ? (
+                <p className="text-center text-slate-400 text-sm py-10">No data available yet</p>
+              ) : categoryData.map((cat: any, idx: number) => {
+                const total = categoryData.reduce((acc: number, curr: any) => acc + curr.value, 0);
+                const percentage = Math.round((cat.value / total) * 100);
+                return (
+                  <div key={idx}>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-xs font-bold text-slate-700">{cat.name}</span>
+                      <span className="text-xs font-bold text-indigo-600">{percentage}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percentage}%` }}
+                        transition={{ duration: 1, delay: idx * 0.1 }}
+                        className={`h-full rounded-full ${
+                          idx === 0 ? 'bg-indigo-600' : 
+                          idx === 1 ? 'bg-purple-500' : 
+                          idx === 2 ? 'bg-emerald-500' : 'bg-amber-500'
+                        }`}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${cat.value}%` }}
-                      transition={{ duration: 1, delay: idx * 0.1 }}
-                      className={`h-full rounded-full ${
-                        idx === 0 ? 'bg-indigo-600' : 
-                        idx === 1 ? 'bg-purple-500' : 
-                        idx === 2 ? 'bg-emerald-500' : 'bg-amber-500'
-                      }`}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
     </div>
-  );
-}
-
-function Clock({ size, className }: { size: number, className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-  );
-}
-
-function AlertTriangle({ size, className }: { size: number, className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-      <path d="M12 9v4" />
-      <path d="M12 17h.01" />
-    </svg>
   );
 }

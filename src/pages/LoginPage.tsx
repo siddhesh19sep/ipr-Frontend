@@ -45,7 +45,7 @@ export default function LoginPage({ onLogin }: { onLogin: (role: 'Admin' | 'User
               <Shield size={32} />
             </div>
             <h2 className="text-3xl font-bold text-slate-900 mb-2">
-              {isAdmin ? 'Admin Portal' : 'Creator Login'}
+              {isAdmin ? 'Admin Portal' : 'User Login'}
             </h2>
             <p className="text-slate-500 text-sm">
               {isAdmin 

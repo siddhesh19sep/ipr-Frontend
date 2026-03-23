@@ -10,14 +10,14 @@ import Sidebar from './components/Sidebar';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
-import CreatorDashboard from './pages/CreatorDashboard';
+import UserDashboard from './pages/CreatorDashboard';
 import IPRegistration from './pages/IPRegistration';
 import IPListing from './pages/IPListing';
 import IPDetail from './pages/IPDetail';
 import VerificationModule from './pages/VerificationModule';
 import DisputeResolution from './pages/DisputeResolution';
 import FileDispute from './pages/FileDispute';
-import RoyaltyHistory from './pages/RoyaltyHistory';
+import Payments from './pages/Payments';
 import Settings from './pages/Settings';
 import PublicVerification from './pages/PublicVerification';
 import LandingPage from './pages/LandingPage';
@@ -28,19 +28,28 @@ import MyLicenses from './pages/MyLicenses';
 function RootRedirect() {
     const { isAuthenticated, isAdminView, isLoading, user } = useContext(AuthContext);
 
-    if (isLoading) return null; // Let the core layer handle the spinner
+    if (isLoading) return null;
 
-    if (!isAuthenticated) return <Navigate to="/login" replace />;
+    if (!isAuthenticated) return <LandingPage />;
 
     if (user?.role === 'Admin') {
         return isAdminView ? <Navigate to="/admin-dashboard" replace /> : <Navigate to="/dashboard" replace />;
     }
 
-    // Normal users don't have a dashboard anymore, send to Registry
+    // Normal users go to Registry
     return <Navigate to="/ips" replace />;
 }
 
 function App() {
+    // Keep-alive heartbeat for Render free tier
+    React.useEffect(() => {
+        const heartbeat = setInterval(() => {
+            fetch('https://ipr-backend-1-2llk.onrender.com/api/auth/status').catch(() => {});
+        }, 10 * 60 * 1000); // Every 10 minutes
+        
+        return () => clearInterval(heartbeat);
+    }, []);
+
     return (
         <AuthProvider>
             <BrowserRouter>
@@ -69,7 +78,7 @@ function AppContent() {
                     <div className={isPublicPage ? '' : 'max-w-7xl mx-auto w-full'}>
                         <Routes>
                             {/* Static Landing Page at Root */}
-                            <Route path="/" element={<LandingPage />} />
+                            <Route path="/" element={<RootRedirect />} />
                             
                             {/* Public Routes */}
                             <Route path="/login" element={<Login />} />
@@ -91,7 +100,7 @@ function AppContent() {
                                 path="/dashboard"
                                 element={
                                     <RoleProtectedRoute allowedRoles={['Admin', 'User']}>
-                                        <CreatorDashboard />
+                                        <UserDashboard />
                                     </RoleProtectedRoute>
                                 }
                             />
@@ -149,7 +158,7 @@ function AppContent() {
                                 path="/royalties"
                                 element={
                                     <RoleProtectedRoute allowedRoles={['User', 'Admin']}>
-                                        <RoyaltyHistory />
+                                        <Payments />
                                     </RoleProtectedRoute>
                                 }
                             />

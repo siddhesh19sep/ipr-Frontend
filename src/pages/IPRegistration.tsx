@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Upload, FileText, Type, List, Tag, Shield, IndianRupee, Calendar, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import { motion } from 'motion/react';
 
 // Declare the Razorpay window object type for TypeScript
 declare global {
@@ -207,8 +208,8 @@ const IPRegistration: React.FC = () => {
                     }
                 },
                 prefill: {
-                    name: user?.name || "IP Creator",
-                    email: user?.email || "creator@example.com",
+                    name: user?.name || "IP User",
+                    email: user?.email || "user@example.com",
                 },
                 theme: {
                     color: "#4f46e5" // Indigo 600
@@ -334,13 +335,16 @@ const IPRegistration: React.FC = () => {
                                 <Calendar className="h-5 w-5 text-gray-400" />
                             </div>
                             <input
-                                type="number"
-                                min="1"
-                                max="99"
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
                                 value={validityPeriod}
-                                onChange={(e) => setValidityPeriod(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '');
+                                    setValidityPeriod(val === '' ? '' : parseInt(val, 10));
+                                }}
                                 className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md p-2.5 border"
-
+                                placeholder="Enter years (e.g. 5)"
                             />
                         </div>
                         <p className="mt-1 text-xs text-gray-500 font-medium">
@@ -436,47 +440,61 @@ const IPRegistration: React.FC = () => {
                 </form>
             </div>
 
-            {/* Simulated Mock Payment Modal Overlay */}
+            {/* Professional Mock Payment Modal Overlay */}
             {showMockPayment && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="bg-indigo-600 p-4 text-white flex justify-between items-center">
-                            <h3 className="font-bold text-lg flex items-center gap-2">
-                                <Shield className="w-5 h-5" /> Test Environment Payment
-                            </h3>
-                            <button onClick={() => setShowMockPayment(false)} className="text-indigo-200 hover:text-white transition">&times;</button>
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <motion.div 
+                        initial={{ scale: 0.95, opacity: 0 }} 
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="bg-white rounded-[3rem] shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 p-10 text-center"
+                    >
+                        <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                            <IndianRupee size={40} />
                         </div>
-                        <div className="p-6 space-y-6 text-center">
-                            <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <IndianRupee size={32} />
-                            </div>
-                            <h4 className="text-xl font-bold text-gray-800">Complete Mock Payment</h4>
-                            <p className="text-sm text-gray-500">
-                                You are currently using the Blockchain IPR <span className="font-bold text-indigo-600">Test Mode</span>.
-                                No real funds will be deducted.
-                            </p>
+                        <h3 className="text-2xl font-black text-slate-900 mb-2">Secure Checkout</h3>
+                        <p className="text-slate-500 font-medium text-sm mb-8">
+                            You are currently in <span className="text-indigo-600 font-bold">Simulator Mode</span>. 
+                            All transactions are recorded systematically in the platform ledger.
+                        </p>
 
-                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex justify-between items-center text-lg font-mono">
-                                <span className="text-gray-600">Amount Due:</span>
-                                <span className="font-bold text-indigo-700">₹{cost.toLocaleString()}</span>
+                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 mb-8">
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Amount Due</span>
+                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Test Network</span>
                             </div>
-
-                            <div className="space-y-3 pt-2">
-                                <button
-                                    onClick={handleExecuteMockPayment}
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition shadow-md"
-                                >
-                                    Simulate Successful Payment
-                                </button>
-                                <button
-                                    onClick={() => { setShowMockPayment(false); setError('Payment simulation cancelled by user.'); }}
-                                    className="w-full bg-white hover:bg-red-50 text-red-600 border border-red-200 font-medium py-3 px-4 rounded-lg transition"
-                                >
-                                    Cancel Payment
-                                </button>
+                            <div className="flex justify-between items-end">
+                                <span className="text-3xl font-black text-slate-900">₹{cost.toLocaleString()}</span>
+                                <span className="text-xs font-bold text-slate-400 pb-1">INR</span>
                             </div>
                         </div>
-                    </div>
+
+                        <div className="space-y-4">
+                            <button
+                                onClick={handleExecuteMockPayment}
+                                disabled={isSubmitting}
+                                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-xl shadow-indigo-200 hover:-translate-y-1 overflow-hidden relative group"
+                            >
+                                <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500" />
+                                {isSubmitting ? (
+                                    <>
+                                        <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Processing...
+                                    </>
+                                ) : (
+                                    'Complete Payment'
+                                )}
+                            </button>
+                            <button
+                                onClick={() => { setShowMockPayment(false); setError('Payment simulation cancelled.'); }}
+                                className="w-full bg-white hover:bg-slate-50 text-slate-400 font-bold py-3 px-4 rounded-2xl transition-all text-xs"
+                            >
+                                Cancel Transaction
+                            </button>
+                        </div>
+                    </motion.div>
                 </div>
             )}
 

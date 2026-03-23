@@ -32,7 +32,7 @@ import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom'; // Added Link import
 
-export default function CreatorDashboard() {
+export default function UserDashboard() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -62,7 +62,7 @@ export default function CreatorDashboard() {
     { title: 'My IP Assets', value: dashboardData?.stats.totalAssets || 0, icon: ShieldCheck, color: 'text-indigo-600', bg: 'bg-indigo-50' },
     { title: 'Pending Approval', value: dashboardData?.stats.pendingApprovals || 0, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
     { title: 'Active Licenses', value: dashboardData?.stats.activeLicenses || 0, icon: Database, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { title: 'Open Disputes', value: dashboardData?.stats.openDisputes || 0, icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
+    { title: 'Portfolio Valuation', value: `₹${(dashboardData?.stats.portfolioValuation || 0).toLocaleString()}`, icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50' },
   ];
 
   if (isLoading) {
@@ -83,34 +83,30 @@ export default function CreatorDashboard() {
         </div>
 
         {/* Replaced existing buttons with new grid of Link components */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Link to="/register-ip" className="group p-6 bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-3xl hover:shadow-lg hover:shadow-indigo-100 transition-all flex flex-col items-center justify-center text-center gap-3">
-            <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <PlusCircle size={24} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full lg:w-2/3">
+          <Link to="/register-ip" className="group p-8 bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-3xl hover:shadow-xl hover:shadow-indigo-100 transition-all flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <PlusCircle size={80} />
+            </div>
+            <div className="w-16 h-16 bg-indigo-600 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-indigo-100">
+              <PlusCircle size={32} />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">Register New IP</h3>
-              <p className="text-xs text-slate-500 mt-1">Submit a new patent, trademark, or copyright hash</p>
+              <h3 className="text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors">Register New IP</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-[200px]">Secure your patent, trademark, or copyright on the blockchain</p>
             </div>
           </Link>
 
-          <Link to="/ips" className="group p-6 bg-gradient-to-br from-emerald-50 to-white border border-emerald-100 rounded-3xl hover:shadow-lg hover:shadow-emerald-100 transition-all flex flex-col items-center justify-center text-center gap-3">
-            <div className="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Search size={24} />
+          <Link to="/file-dispute" className="group p-8 bg-gradient-to-br from-rose-50 to-white border border-rose-100 rounded-3xl hover:shadow-xl hover:shadow-rose-100 transition-all flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <AlertTriangle size={80} />
+            </div>
+            <div className="w-16 h-16 bg-rose-600 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-rose-100">
+              <AlertTriangle size={32} />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">Browse Registry</h3>
-              <p className="text-xs text-slate-500 mt-1">Search the global IP blockchain database</p>
-            </div>
-          </Link>
-
-          <Link to="/file-dispute" className="group p-6 bg-gradient-to-br from-rose-50 to-white border border-rose-100 rounded-3xl hover:shadow-lg hover:shadow-rose-100 transition-all flex flex-col items-center justify-center text-center gap-3">
-            <div className="w-12 h-12 bg-rose-600 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <AlertTriangle size={24} />
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-900 group-hover:text-rose-600 transition-colors">File a Dispute</h3>
-              <p className="text-xs text-slate-500 mt-1">Lodge a formal claim against an existing IP</p>
+              <h3 className="text-lg font-black text-slate-900 group-hover:text-rose-600 transition-colors">Protect & Dispute</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-[200px]">Lodge a formal claim against an existing registration</p>
             </div>
           </Link>
         </div>
@@ -137,7 +133,21 @@ export default function CreatorDashboard() {
             <div className={`absolute -bottom-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-20 transition-opacity duration-300 mix-blend-multiply ${stat.bg.replace('bg-', 'bg-')}`}></div>
           </motion.div>
         ))}
+        {/* Dispute stat moved to a smaller badge or handled separately if needed, 
+            but for now we replaced it with Valuation as it's more relevant to the user's focus. 
+            Actually, let's keep 4 cards and merge logic if needed, but 5 cards is also fine if we adjust grid. */}
       </div>
+
+      {/* Added a small alert for open disputes if any */}
+      {dashboardData?.stats.openDisputes > 0 && (
+        <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+                <AlertCircle className="text-rose-600" size={20} />
+                <span className="text-rose-900 font-bold">You have {dashboardData.stats.openDisputes} active disputes that require attention.</span>
+            </div>
+            <button onClick={() => navigate('/disputes')} className="text-rose-600 font-bold text-sm hover:underline">View Disputes &rarr;</button>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Earnings Area Chart (Spans 2 columns) */}
@@ -150,13 +160,15 @@ export default function CreatorDashboard() {
               <p className="text-xs text-slate-500 mt-1">Your royalty income over the last 6 months</p>
             </div>
             <div className="text-right">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest hidden sm:block">Total Earned</p>
-              <p className="text-2xl font-black text-indigo-600 tracking-tight">₹{(dashboardData?.stats.totalRoyalty || 0).toLocaleString()}</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest hidden sm:block">Real Earnings</p>
+              <p className="text-2xl font-black text-emerald-600 tracking-tight">₹{(dashboardData?.stats.totalRoyalty || 0).toLocaleString()}</p>
             </div>
           </div>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={CHART_DATA.royalty}>
+              <AreaChart data={dashboardData?.stats.royaltyTrend?.length > 0 ? dashboardData.stats.royaltyTrend : [
+                  { month: 'N/A', amount: 0 }
+              ]}>
                 <defs>
                   <linearGradient id="colorRoyalty" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.15} />
@@ -165,7 +177,7 @@ export default function CreatorDashboard() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(val) => `₹${val / 1000}k`} dx={-10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(val) => `₹${val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val}`} dx={-10} />
                 <Tooltip
                   contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
                   itemStyle={{ color: '#4f46e5', fontWeight: 'bold' }}
@@ -221,14 +233,21 @@ export default function CreatorDashboard() {
 
       {/* Expanded Recent Assets Feed */}
       <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Database className="text-indigo-500" size={20} /> Internal IP Registry
-            </h3>
-            <p className="text-xs text-slate-500 mt-1">Your 5 most recently updated Intellectual Property assets</p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                <ShieldCheck size={24} />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-slate-900 tracking-tight">Secured Asset Portfolio</h3>
+              <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mt-0.5 flex items-center gap-1.5">
+                  <Activity size={12} className="animate-pulse" /> Live Blockchain Ledger
+              </p>
+            </div>
           </div>
-          <button onClick={() => navigate('/ips')} className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors hidden sm:block">View Full Directory &rarr;</button>
+          <Link to="/ips" className="px-5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-black text-slate-600 transition-all flex items-center gap-2 group">
+              Browse Global Network <ArrowUpRight size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </Link>
         </div>
 
         {dashboardData?.recentAssets.length === 0 ? (

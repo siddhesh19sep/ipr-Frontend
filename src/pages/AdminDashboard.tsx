@@ -120,33 +120,70 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Royalty Card */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-indigo-200 flex flex-col md:flex-row items-center justify-between gap-8"
-      >
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-              <IndianRupee size={20} />
+      {/* Revenue Overview Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="lg:col-span-2 bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-indigo-200 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group"
+        >
+            <div className="absolute -right-12 -top-12 w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all" />
+            <div className="space-y-4 relative z-10">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                        <IndianRupee size={20} />
+                    </div>
+                    <span className="text-sm font-bold uppercase tracking-widest opacity-80">Total Platform Revenue</span>
+                </div>
+                <h2 className="text-5xl font-extrabold">₹{(dashboardData?.stats.totalRevenue || 0).toLocaleString()}</h2>
+                <div className="flex items-center gap-4">
+                    <p className="text-indigo-100 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <TrendingUp size={14} />
+                        <span>+₹0 this week</span>
+                    </p>
+                </div>
             </div>
-            <span className="text-sm font-bold uppercase tracking-widest opacity-80">Total Royalty Payments</span>
-          </div>
-          <h2 className="text-5xl font-extrabold">₹{(dashboardData?.stats.totalRoyalty || 0).toLocaleString()}</h2>
-          <p className="text-indigo-100 text-sm flex items-center gap-2">
-            <TrendingUp size={16} />
-            <span>15% increase from last month</span>
-          </p>
+            <div className="h-32 w-full md:w-64 relative z-10">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dashboardData?.stats.revenueTrend?.length > 0 ? dashboardData.stats.revenueTrend : [
+                        { month: 'N/A', amount: 0 }
+                    ]}>
+                        <Line type="monotone" dataKey="amount" stroke="#fff" strokeWidth={3} dot={false} />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+        </motion.div>
+
+        <div className="space-y-6">
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Registration Fees</p>
+                    <ShieldCheck size={16} className="text-indigo-500" />
+                </div>
+                <h4 className="text-2xl font-bold text-slate-900">₹{(dashboardData?.stats.registrationRevenue || 0).toLocaleString()}</h4>
+                <div className="w-full h-1.5 bg-slate-100 rounded-full mt-4 overflow-hidden">
+                    <div 
+                        className="h-full bg-indigo-500" 
+                        style={{ width: `${(dashboardData?.stats.registrationRevenue / (dashboardData?.stats.totalRevenue || 1)) * 100}%` }} 
+                    />
+                </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Platform Royalty</p>
+                    <TrendingUp size={16} className="text-emerald-500" />
+                </div>
+                <h4 className="text-2xl font-bold text-slate-900">₹{(dashboardData?.stats.royaltyRevenue || 0).toLocaleString()}</h4>
+                <div className="w-full h-1.5 bg-slate-100 rounded-full mt-4 overflow-hidden">
+                    <div 
+                        className="h-full bg-emerald-500" 
+                        style={{ width: `${(dashboardData?.stats.royaltyRevenue / (dashboardData?.stats.totalRevenue || 1)) * 100}%` }} 
+                    />
+                </div>
+            </div>
         </div>
-        <div className="h-32 w-full md:w-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={CHART_DATA.royalty.slice(-4)}>
-              <Line type="monotone" dataKey="amount" stroke="#fff" strokeWidth={3} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </motion.div>
+      </div>
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -154,14 +191,16 @@ export default function AdminDashboard() {
         <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
           <div className="flex items-center justify-between mb-8">
             <h3 className="font-bold text-slate-900">Monthly IP Registrations</h3>
-            <select className="text-xs font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none">
-              <option>2024</option>
-              <option>2023</option>
-            </select>
+            <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-indigo-500 rounded-full" />
+                <span className="text-xs font-bold text-slate-500">Live Registration Sync</span>
+            </div>
           </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={CHART_DATA.registrations}>
+              <BarChart data={dashboardData?.stats.registrationsTrend?.length > 0 ? dashboardData.stats.registrationsTrend : [
+                  { month: 'No Data', count: 0 }
+              ]}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
@@ -229,9 +268,14 @@ export default function AdminDashboard() {
                     <span className="text-slate-400 font-bold">₹</span>
                   </div>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={cost}
-                    onChange={(e) => setPricingMatrix({ ...pricingMatrix, [category]: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      setPricingMatrix({ ...pricingMatrix, [category]: val === '' ? 0 : parseInt(val, 10) });
+                    }}
                     className="w-full pl-8 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono"
                   />
                 </div>

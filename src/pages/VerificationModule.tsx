@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ShieldCheck, Clock, FileText, ExternalLink, CheckCircle, XCircle, Database } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ShieldCheck, Clock, FileText, ExternalLink, CheckCircle, XCircle, Database, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import api from '../services/api';
 
@@ -10,6 +11,7 @@ interface IPLiveData {
   category: string;
   status: string;
   fileHash: string;
+  fileData?: string;
   txHash?: string;
   createdAt: string;
   owner: {
@@ -23,6 +25,7 @@ export default function VerificationModule() {
   const [selectedIP, setSelectedIP] = useState<IPLiveData | null>(null);
   const [ips, setIps] = useState<IPLiveData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const fetchIPs = async () => {
@@ -45,19 +48,82 @@ export default function VerificationModule() {
   }, []);
 
   const handleAction = async (id: string, newStatus: 'Approved' | 'Rejected') => {
+    setIsProcessing(true);
     try {
-      await api.put(`/ip/${id}`, { status: newStatus });
+      const res = await api.put(`/ip/${id}`, { status: newStatus });
+      const updatedIP = res.data.ip || res.data;
 
-      // Update local state to reflect the status change visually
-      setIps(ips.map(ip => ip._id === id ? { ...ip, status: newStatus } : ip));
+      // Update local state to reflect the all changes including txHash and fileData
+      setIps(ips.map(ip => ip._id === id ? { ...ip, ...updatedIP } : ip));
 
-      // Optionally deselect or just update the selected one
+      // Update selected one
       if (selectedIP && selectedIP._id === id) {
-        setSelectedIP({ ...selectedIP, status: newStatus });
+        setSelectedIP({ ...selectedIP, ...updatedIP });
+      }
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || "Could not update IP status.";
+      const details = err.response?.data?.details ? `\nDetails: ${err.response.data.details}` : "";
+      alert(`${errorMsg}${details}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSelectIP = (ip: IPLiveData) => {
+    setSelectedIP(ip);
+  };
+
+  const [isFileLoading, setIsFileLoading] = useState(false);
+
+  const openBase64Document = (base64Data: string) => {
+      // If it's not a base64 string, just open it normally
+      if (!base64Data.startsWith('data:')) {
+          window.open(base64Data, '_blank');
+          return;
+      }
+      
+      const newWindow = window.open();
+      if (newWindow) {
+          // Tell the new window to render the base64 string as a document/image source in a full-screen iframe
+          newWindow.document.write(`
+              <html>
+                  <head><title>Document Viewer</title></head>
+                  <body style="margin:0; height:100vh; display:flex; justify-content:center; align-items:center; background:#1e1e1e;">
+                      <iframe src="${base64Data}" width="100%" height="100%" style="border:none;"></iframe>
+                  </body>
+              </html>
+          `);
+          newWindow.document.close();
+      } else {
+          alert('Please allow popups to view the document.');
+      }
+  };
+
+  const handleInspect = async (ip: IPLiveData) => {
+    if (ip.fileData && ip.fileData !== 'LARGE_FILE_STORED_IN_GRIDFS') {
+      openBase64Document(ip.fileData);
+      return;
+    }
+
+    setIsFileLoading(true);
+    try {
+      const res = await api.get(`/ip/${ip._id}/file`);
+      if (res.data.fileData) {
+        // Update local list
+        const updatedIps = ips.map(item => 
+          item._id === ip._id ? { ...item, fileData: res.data.fileData } : item
+        );
+        setIps(updatedIps);
+        setSelectedIP({ ...ip, fileData: res.data.fileData });
+        
+        // Open it properly instead of as raw text
+        openBase64Document(res.data.fileData);
       }
     } catch (err) {
-      console.error(`Failed to mark IP as ${newStatus}`, err);
-      alert(`Could not update IP status.`);
+      console.error("Failed to lazy-fetch file data", err);
+      alert("Failed to load file content.");
+    } finally {
+      setIsFileLoading(false);
     }
   };
 
@@ -68,9 +134,9 @@ export default function VerificationModule() {
         <p className="text-slate-500 text-sm">Review and approve intellectual property submissions</p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
+      <div className="max-w-4xl mx-auto space-y-4">
         {/* IP List */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="space-y-4">
           {isLoading ? (
             <div className="flex justify-center py-10">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -81,7 +147,7 @@ export default function VerificationModule() {
             <motion.div
               key={ip._id}
               layoutId={ip._id}
-              onClick={() => setSelectedIP(ip)}
+              onClick={() => handleSelectIP(ip)}
               className={`bg-white p-6 rounded-[2rem] border transition-all cursor-pointer group ${selectedIP?._id === ip._id ? 'border-indigo-600 ring-4 ring-indigo-50' : 'border-slate-100 hover:border-indigo-200 shadow-sm'
                 }`}
             >
@@ -119,139 +185,176 @@ export default function VerificationModule() {
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  <a
-                    href={`https://gateway.pinata.cloud/ipfs/${ip.fileHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  {ip.fileData || !ip.fileHash?.startsWith('QmMock') ? (
+                    <a
+                      href={ip.fileData || `https://gateway.pinata.cloud/ipfs/${ip.fileHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-slate-500 hover:text-slate-700 text-xs font-bold flex items-center gap-1 transition-colors"
+                    >
+                      View File <ExternalLink size={12} />
+                    </a>
+                  ) : (
+                    <span className="text-slate-400 text-[10px] font-bold italic">Simulation Data</span>
+                  )}
+                  <Link 
+                    to={`/ips/${ip._id}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="text-slate-500 hover:text-slate-700 text-xs font-bold flex items-center gap-1 transition-colors"
+                    className="text-indigo-600 text-xs font-bold flex items-center gap-1 hover:underline"
                   >
-                    View File <ExternalLink size={12} />
-                  </a>
-                  <button className="text-indigo-600 text-xs font-bold flex items-center gap-1 hover:underline">
                     View Details <ExternalLink size={12} />
-                  </button>
+                  </Link>
                 </div>
               </div>
             </motion.div>
           ))}
         </div>
+      </div>
 
-        {/* Detail Panel */}
-        <div className="lg:col-span-1">
-          <AnimatePresence mode="wait">
-            {selectedIP ? (
-              <motion.div
-                key="detail"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-8 sticky top-24"
-              >
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="font-bold text-slate-900">IP Review Panel</h3>
-                  <button onClick={() => setSelectedIP(null)} className="text-slate-400 hover:text-slate-600">
-                    <XCircle size={20} />
-                  </button>
+      {/* Centered Modal Overlay for IP Review */}
+
+      <AnimatePresence>
+        {selectedIP && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedIP(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white rounded-[3rem] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-slate-100 p-8 md:p-12 scrollbar-hide"
+            >
+              <div className="flex items-center justify-between mb-10 sticky top-0 bg-white z-10 pb-4">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900">Review Asset</h3>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Verification Queue</p>
                 </div>
+                <button 
+                  onClick={() => setSelectedIP(null)} 
+                  className="w-10 h-10 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded-2xl flex items-center justify-center transition-all"
+                >
+                  <XCircle size={24} />
+                </button>
+              </div>
 
-                <div className="space-y-6">
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Metadata</p>
-                    <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-xs text-slate-500">IP ID</span>
-                        <span className="text-xs font-mono font-bold text-slate-900">{selectedIP._id}</span>
+              <div className="space-y-10">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Asset Identity</p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center group">
+                        <span className="text-[10px] font-bold text-slate-400">Database ID</span>
+                        <span className="text-[10px] font-mono font-black text-slate-900 bg-white px-2 py-0.5 rounded-lg border border-slate-100 shadow-sm">{selectedIP._id.slice(-8)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-xs text-slate-500">Category</span>
-                        <span className="text-xs font-bold text-slate-900">{selectedIP.category}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-slate-400">Category</span>
+                        <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-wider rounded-lg border border-indigo-100">{selectedIP.category}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-xs text-slate-500">Owner</span>
-                        <span className="text-xs font-bold text-slate-900">{selectedIP.owner?.name || 'Unknown'}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-slate-400">Lead Owner</span>
+                        <span className="text-[10px] font-black text-slate-900">{selectedIP.owner?.name || 'Unknown'}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Description</p>
-                    <p className="text-sm text-slate-600 leading-relaxed">
+                  <div className="bg-indigo-600 rounded-2xl p-4 text-white shadow-lg shadow-indigo-100 relative overflow-hidden group">
+                    <div className="absolute -right-8 -top-8 w-20 h-20 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all" />
+                    <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest mb-2 relative z-10">Blockchain Status</p>
+                    <div className="flex items-center gap-3 relative z-10">
+                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                        <Database size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-black truncate">
+                          {selectedIP.txHash ? selectedIP.txHash : 'Awaiting Proof...'}
+                        </p>
+                        <p className="text-[9px] font-bold text-indigo-300">Hash Registry V1</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Invention Abstract</p>
+                  <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                    <h4 className="text-base font-black text-slate-900 mb-1 truncate">{selectedIP.title}</h4>
+                    <p className="text-xs text-slate-600 leading-relaxed font-medium line-clamp-3">
                       {selectedIP.description}
                     </p>
                   </div>
+                </div>
 
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Blockchain Proof</p>
-                    <div className="bg-indigo-50 rounded-2xl p-4 flex items-center gap-3">
-                      <Database size={20} className="text-indigo-600" />
-                      <div className="overflow-hidden w-full">
-                        <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Transaction Hash</p>
-                        <p className="text-xs font-mono font-bold text-slate-900 truncate">
-                          {selectedIP.txHash ? selectedIP.txHash : 'Pending Blockchain Sync...'}
-                        </p>
-                      </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Document Proof</p>
+                  <div className="bg-white border border-slate-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+                    <div className="w-10 h-10 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center shrink-0">
+                      <FileText size={20} />
                     </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Original File Integrity Hash</p>
-                    <div className="bg-slate-50 rounded-2xl p-4 flex items-center gap-3">
-                      <FileText size={20} className="text-slate-500" />
-                      <div className="overflow-hidden w-full flex justify-between items-center">
-                        <p className="text-xs font-mono font-bold text-slate-900 break-all w-2/3">
-                          {selectedIP.fileHash}
-                        </p>
-                        <a
-                          href={`https://gateway.pinata.cloud/ipfs/${selectedIP.fileHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg flex items-center gap-1 transition-colors"
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">IPFS Hash</p>
+                      <p className="text-[10px] font-mono font-bold text-slate-900 truncate mb-2">{selectedIP.fileHash}</p>
+                      {selectedIP.fileData || !selectedIP.fileHash?.startsWith('QmMock') ? (
+                        <button
+                          onClick={() => handleInspect(selectedIP)}
+                          disabled={isFileLoading}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-indigo-600 transition-all disabled:opacity-50"
                         >
-                          View File <ExternalLink size={12} />
-                        </a>
-                      </div>
+                          {isFileLoading ? 'Loading File...' : <><Database size={12} /> Inspect Content</>}
+                          <ExternalLink size={12} />
+                        </button>
+                      ) : (
+                        <div className="px-3 py-1.5 bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-amber-100 flex items-center gap-2">
+                          <AlertTriangle size={12} /> Mock Asset (No Content)
+                        </div>
+                      )}
                     </div>
                   </div>
+                </div>
 
-                  <div className="pt-6 border-t border-slate-100 space-y-4">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Review Comments</p>
+                <div className="pt-6 border-t border-slate-100 space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Internal Feedback</label>
                     <textarea
-                      placeholder="Add internal notes or rejection reasons..."
-                      className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 min-h-[100px]"
+                      placeholder="Add reviewer notes..."
+                      className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 min-h-[80px] transition-all"
                     />
+                  </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <button
-                        onClick={() => handleAction(selectedIP._id, 'Rejected')}
-                        className="flex items-center justify-center gap-2 py-3 border-2 border-slate-200 rounded-2xl text-sm font-bold text-slate-600 hover:border-rose-500 hover:text-rose-500 transition-all"
-                      >
-                        <XCircle size={18} />
-                        Reject
-                      </button>
-                      <button
-                        onClick={() => handleAction(selectedIP._id, 'Approved')}
-                        className="flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-2xl text-sm font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
-                      >
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      onClick={() => handleAction(selectedIP._id, 'Rejected')}
+                      disabled={selectedIP.status !== 'Pending'}
+                      className="flex items-center justify-center gap-2 py-3.5 border-2 border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:border-rose-500 hover:text-rose-500 hover:bg-rose-50 transition-all disabled:opacity-50"
+                    >
+                      <XCircle size={18} />
+                      Reject
+                    </button>
+                    <button
+                      onClick={() => handleAction(selectedIP._id, 'Approved')}
+                      disabled={selectedIP.status !== 'Pending' || isProcessing}
+                      className="flex items-center justify-center gap-2 py-3.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50"
+                    >
+                      {isProcessing ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
                         <CheckCircle size={18} />
-                        Approve
-                      </button>
-                    </div>
+                      )}
+                      {isProcessing ? 'Processing...' : selectedIP.status === 'Pending' ? 'Approve & Mint' : 'Already Processed'}
+                    </button>
                   </div>
                 </div>
-              </motion.div>
-            ) : (
-              <div className="h-[500px] border-2 border-dashed border-slate-200 rounded-[2.5rem] flex flex-col items-center justify-center text-center p-8 text-slate-400">
-                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
-                  <ShieldCheck size={32} />
-                </div>
-                <p className="font-bold text-slate-500">No IP Selected</p>
-                <p className="text-xs mt-2">Select a submission from the list to review its details and blockchain proof.</p>
               </div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

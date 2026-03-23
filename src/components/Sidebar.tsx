@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { BACKEND_ROOT_URL } from '../services/api';
 import { 
   FileText, 
   Search, 
@@ -21,14 +22,12 @@ const Sidebar: React.FC = () => {
     if (!isAuthenticated || !user) return null;
 
     const navItems = isAdminView ? [
-        { name: 'Home', path: '/admin-dashboard', icon: Home },
+        { name: 'System Overview', path: '/admin-dashboard', icon: Home },
         { name: 'Verification Queue', path: '/verification', icon: ShieldCheck },
         { name: 'Dispute Queue', path: '/disputes', icon: Gavel },
         { name: 'IP Registry', path: '/ips', icon: Search },
-        { name: 'My Licenses', path: '/my-licenses', icon: Key },
-        { name: 'Royalty History', path: '/royalties', icon: Clock },
     ] : [
-        { name: 'Home', path: '/dashboard', icon: Home },
+        { name: 'Dashboard', path: '/dashboard', icon: Home },
         { name: 'Register IP', path: '/register-ip', icon: FileText },
         { name: 'IP Registry', path: '/ips', icon: Search },
         { name: 'My Licenses', path: '/my-licenses', icon: Key },
@@ -45,7 +44,7 @@ const Sidebar: React.FC = () => {
                     <div className="flex items-center gap-3 p-3 rounded-2xl border border-transparent group-hover:bg-slate-800 group-hover:border-slate-700 transition-all">
                         <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-indigo-400 font-bold overflow-hidden shrink-0 shadow-inner border border-slate-700">
                             {user.avatarUrl ? (
-                                <img src={"https://ipr-backend-1-2llk.onrender.com" + user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                                <img src={BACKEND_ROOT_URL + user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                             ) : (
                                 user.name ? user.name.substring(0, 2).toUpperCase() : 'US'
                             )}
@@ -55,7 +54,7 @@ const Sidebar: React.FC = () => {
                                 {user.name || 'Anonymous User'}
                             </h3>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5 truncate">
-                                {user.role}
+                                {user.role === 'User' ? 'User' : user.role}
                             </p>
                         </div>
                     </div>

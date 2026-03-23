@@ -187,7 +187,7 @@ const Register: React.FC = () => {
                                 </div>
 
                                 <div className="space-y-1.5 pt-2">
-                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest">Web3 Wallet Integration</label>
+                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest">Web3 Wallet Integration (Optional)</label>
                                     {walletAddress ? (
                                         <div className="flex items-center justify-between pl-4 pr-2 py-3 bg-emerald-50 border border-emerald-200 rounded-2xl shadow-sm">
                                             <div className="flex items-center">

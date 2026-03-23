@@ -1,10 +1,10 @@
 import { User, IPRegistration, Dispute, Notification } from './types';
 
 export const MOCK_USERS: User[] = [
-  { id: '1', name: 'Aarav Mehta', email: 'aarav@example.com', mobile: '+91 9876543210', role: 'Creator', status: 'Verified', accountStatus: 'Active' },
-  { id: '2', name: 'Riya Deshpande', email: 'riya@example.com', mobile: '+91 9876543211', role: 'Creator', status: 'Verified', accountStatus: 'Active' },
+  { id: '1', name: 'Aarav Mehta', email: 'aarav@example.com', mobile: '+91 9876543210', role: 'User', status: 'Verified', accountStatus: 'Active' },
+  { id: '2', name: 'Riya Deshpande', email: 'riya@example.com', mobile: '+91 9876543211', role: 'User', status: 'Verified', accountStatus: 'Active' },
   { id: '3', name: 'Kunal Patil', email: 'kunal@example.com', mobile: '+91 9876543212', role: 'User', status: 'Pending', accountStatus: 'Active' },
-  { id: '4', name: 'Shruti Sharma', email: 'shruti@example.com', mobile: '+91 9876543213', role: 'Creator', status: 'Verified', accountStatus: 'Active' },
+  { id: '4', name: 'Shruti Sharma', email: 'shruti@example.com', mobile: '+91 9876543213', role: 'User', status: 'Verified', accountStatus: 'Active' },
   { id: '5', name: 'Vikram Singh', email: 'vikram@example.com', mobile: '+91 9876543214', role: 'User', status: 'Suspended', accountStatus: 'Inactive' },
 ];
 
