@@ -12,6 +12,7 @@ interface IPLiveData {
   status: string;
   fileHash: string;
   fileData?: string;
+  gridFsId?: string;
   txHash?: string;
   createdAt: string;
   owner: {
@@ -300,7 +301,7 @@ export default function VerificationModule() {
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">IPFS Hash</p>
                       <p className="text-[10px] font-mono font-bold text-slate-900 truncate mb-2">{selectedIP.fileHash}</p>
-                      {selectedIP.fileData || !selectedIP.fileHash?.startsWith('QmMock') ? (
+                      {selectedIP.gridFsId || selectedIP.fileData || !selectedIP.fileHash?.startsWith('QmMock') ? (
                         <button
                           onClick={() => handleInspect(selectedIP)}
                           disabled={isFileLoading}
