@@ -189,29 +189,12 @@ export default function VerificationModule() {
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  {ip.gridFsId || ip.fileData || !ip.fileHash?.startsWith('QmMock') ? (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleInspect(ip); }}
-                      disabled={isFileLoading}
-                      className="text-slate-500 hover:text-slate-700 text-xs font-bold flex items-center gap-1 transition-colors disabled:opacity-50"
-                    >
-                      {isFileLoading ? 'Loading...' : 'View File'} <ExternalLink size={12} />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleInspect(ip); }}
-                      disabled={isFileLoading}
-                      className="text-slate-500 hover:text-slate-700 text-[10px] font-bold italic transition-colors"
-                    >
-                      {isFileLoading ? 'Loading...' : 'View File'}
-                    </button>
-                  )}
                   <Link 
                     to={`/ips/${ip._id}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="text-indigo-600 text-xs font-bold flex items-center gap-1 hover:underline"
+                    className="text-indigo-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-all"
                   >
-                    View Details <ExternalLink size={12} />
+                    View Logic <ExternalLink size={12} />
                   </Link>
                 </div>
               </div>
