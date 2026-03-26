@@ -1,12 +1,14 @@
 import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { LogOut, Shield, Settings as SettingsIcon, ArrowLeftRight, Bell, Check, Trash2, Info } from 'lucide-react';
+import { Web3Context } from '../context/Web3Context';
+import { LogOut, Shield, Settings as SettingsIcon, ArrowLeftRight, Bell, Check, Trash2, Info, Wallet } from 'lucide-react';
 import * as api from '../services/api';
 import GlobalSearch from './GlobalSearch';
 
 const Navbar: React.FC = () => {
     const { isAuthenticated, user, logout, isAdminView, toggleAdminView } = useContext(AuthContext);
+    const { account, connectWallet, isConnecting } = useContext(Web3Context);
     const navigate = useNavigate();
     const [alerts, setAlerts] = React.useState<any[]>([]);
     const [showAlerts, setShowAlerts] = React.useState(false);
@@ -65,36 +67,6 @@ const Navbar: React.FC = () => {
                             <span className="font-bold text-xl tracking-tight text-gray-900">
                                 IPR<span className="text-indigo-600">Chain</span>
                             </span>
-                            
-                            {/* Diagnostic Badge Hover */}
-                            <div className="absolute left-0 top-full mt-2 hidden group-hover:block bg-slate-900 text-white p-3 rounded-xl shadow-2xl border border-slate-700 text-[10px] w-64 z-[100] font-mono leading-tight">
-                                <p className="text-emerald-400 mb-1 font-bold">● SYSTEM OPERATIONAL</p>
-                                <p className="text-slate-400 mb-2 border-b border-slate-800 pb-1">v1.2.5 Final Production Audit</p>
-                                <div className="space-y-1">
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">API:</span>
-                                        <span className="text-indigo-300 truncate ml-2">1-2llk.onrender.com</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">USER:</span>
-                                        <span className="text-white">{user?.name || 'Guest'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">ROLE:</span>
-                                        <span className="text-indigo-300 uppercase">{user?.role || 'Guest'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">STORAGE:</span>
-                                        <span className="text-emerald-400">50MB Active</span>
-                                    </div>
-                                </div>
-                                <button 
-                                    onClick={() => window.location.reload()}
-                                    className="mt-3 w-full bg-slate-800 hover:bg-slate-700 py-1.5 rounded font-bold text-indigo-400 border border-slate-700 transition-colors"
-                                >
-                                    Force Global Sync
-                                </button>
-                            </div>
                         </Link>
                         
                         {/* Global Search Bar */}
@@ -108,25 +80,7 @@ const Navbar: React.FC = () => {
                                     <span className="bg-slate-100 text-slate-600 py-1 px-3 rounded-full text-[10px] font-black uppercase tracking-widest border border-slate-200">
                                         {user.role === 'User' ? 'User' : user.role}
                                     </span>
-                                    {user.role === 'Admin' && (
-                                        <span className={`py-1.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm animate-in fade-in slide-in-from-right-2 duration-300 ${
-                                            isAdminView 
-                                            ? 'bg-rose-500 text-white shadow-rose-200' 
-                                            : 'bg-emerald-500 text-white shadow-emerald-200'
-                                        }`}>
-                                            {isAdminView ? 'Admin Mode' : 'User Mode'}
-                                        </span>
-                                    )}
                                 </div>
-                                {user.role === 'Admin' && (
-                                    <button
-                                        onClick={handleToggle}
-                                        className="p-2 text-amber-600 hover:text-amber-700 transition-colors rounded-lg hover:bg-amber-50"
-                                        title={isAdminView ? "Switch to User View" : "Switch to Admin View"}
-                                    >
-                                        <ArrowLeftRight className="h-5 w-5" />
-                                    </button>
-                                )}
 
                                 {/* Alerts Dropdown */}
                                 <div className="relative">
@@ -164,7 +118,7 @@ const Navbar: React.FC = () => {
                                                                 key={alert._id} 
                                                                 className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer group ${!alert.isRead ? 'bg-indigo-50/30' : ''}`}
                                                                 onClick={() => {
-                                                                    if (alert.relatedId) navigate(`/ip/${alert.relatedId}`);
+                                                                    if (alert.relatedId) navigate(`/ips/${alert.relatedId}`);
                                                                     setShowAlerts(false);
                                                                 }}
                                                             >
@@ -202,15 +156,7 @@ const Navbar: React.FC = () => {
                                 >
                                     <SettingsIcon className="h-5 w-5" />
                                 </Link>
-                                <button
-                                    onClick={handleLogout}
-                                    className="hidden lg:inline-flex items-center gap-2 text-white bg-rose-600 hover:bg-rose-700 transition-colors px-4 py-2 rounded-xl font-bold shadow-sm shadow-rose-200"
-                                    title="Logout"
-                                >
-                                    <LogOut className="h-4 w-4" />
-                                    Logout
-                                </button>
-                                
+
                                 {/* Mobile Logout button */}
                                 <button
                                     onClick={handleLogout}
@@ -242,6 +188,32 @@ const Navbar: React.FC = () => {
                                 </Link>
                             </div>
                         )}
+
+                        {/* Shared Wallet Button (Visible for all) */}
+                        <div className="flex items-center gap-4 ml-4 pl-4 border-l border-gray-200">
+                            <div className="relative group">
+                                <button
+                                    onClick={connectWallet}
+                                    disabled={isConnecting}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                                        account 
+                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
+                                        : 'bg-indigo-600 text-white border-transparent hover:bg-indigo-700 shadow-sm shadow-indigo-100'
+                                    }`}
+                                >
+                                    <Wallet size={14} />
+                                    {account 
+                                        ? `${account.substring(0, 6)}...${account.substring(account.length - 4)}` 
+                                        : isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                                </button>
+                                
+                                {isAuthenticated && user && (
+                                    <div className="absolute right-0 top-full mt-2 hidden group-hover:block whitespace-nowrap bg-slate-900 text-white px-3 py-1 rounded text-[10px] font-bold z-50">
+                                        Logged in as {user.role}: {user.name}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

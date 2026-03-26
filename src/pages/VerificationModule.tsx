@@ -109,7 +109,7 @@ export default function VerificationModule() {
     setIsFileLoading(true);
     try {
       const res = await api.get(`/ip/${ip._id}/file`);
-      if (res.data.fileData) {
+      if (res.data.fileData && res.data.fileData !== 'LARGE_FILE_STORED_IN_GRIDFS') {
         // Update local list
         const updatedIps = ips.map(item => 
           item._id === ip._id ? { ...item, fileData: res.data.fileData } : item
@@ -119,8 +119,11 @@ export default function VerificationModule() {
         
         // Open it properly instead of as raw text
         openBase64Document(res.data.fileData);
+      } else {
+        alert("File content is unavailable or corrupted.");
       }
     } catch (err) {
+
       console.error("Failed to lazy-fetch file data", err);
       alert("Failed to load file content.");
     } finally {
@@ -186,18 +189,22 @@ export default function VerificationModule() {
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  {ip.fileData || !ip.fileHash?.startsWith('QmMock') ? (
-                    <a
-                      href={ip.fileData || `https://gateway.pinata.cloud/ipfs/${ip.fileHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-slate-500 hover:text-slate-700 text-xs font-bold flex items-center gap-1 transition-colors"
+                  {ip.gridFsId || ip.fileData || !ip.fileHash?.startsWith('QmMock') ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleInspect(ip); }}
+                      disabled={isFileLoading}
+                      className="text-slate-500 hover:text-slate-700 text-xs font-bold flex items-center gap-1 transition-colors disabled:opacity-50"
                     >
-                      View File <ExternalLink size={12} />
-                    </a>
+                      {isFileLoading ? 'Loading...' : 'View File'} <ExternalLink size={12} />
+                    </button>
                   ) : (
-                    <span className="text-slate-400 text-[10px] font-bold italic">Simulation Data</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleInspect(ip); }}
+                      disabled={isFileLoading}
+                      className="text-slate-500 hover:text-slate-700 text-[10px] font-bold italic transition-colors"
+                    >
+                      {isFileLoading ? 'Loading...' : 'View File'}
+                    </button>
                   )}
                   <Link 
                     to={`/ips/${ip._id}`}
@@ -230,7 +237,7 @@ export default function VerificationModule() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white rounded-[3rem] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-slate-100 p-8 md:p-12 scrollbar-hide"
+              className="relative bg-white rounded-[3rem] shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto border border-slate-100 p-8 md:p-14 scrollbar-hide"
             >
               <div className="flex items-center justify-between mb-10 sticky top-0 bg-white z-10 pb-4">
                 <div>
@@ -302,17 +309,23 @@ export default function VerificationModule() {
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">IPFS Hash</p>
                       <p className="text-[10px] font-mono font-bold text-slate-900 truncate mb-2">{selectedIP.fileHash}</p>
                       {selectedIP.gridFsId || selectedIP.fileData || !selectedIP.fileHash?.startsWith('QmMock') ? (
-                        <button
-                          onClick={() => handleInspect(selectedIP)}
-                          disabled={isFileLoading}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-indigo-600 transition-all disabled:opacity-50"
-                        >
-                          {isFileLoading ? 'Loading File...' : <><Database size={12} /> Inspect Content</>}
-                          <ExternalLink size={12} />
-                        </button>
+                        <div className="flex flex-wrap gap-3 mt-4">
+                          <button
+                            onClick={() => handleInspect(selectedIP)}
+                            disabled={isFileLoading}
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200 disabled:opacity-50"
+                          >
+                            {isFileLoading ? 'Accessing Secure Vault...' : <><FileText size={16} /> Inspect Original Document</>}
+                            <ExternalLink size={14} />
+                          </button>
+                        </div>
                       ) : (
-                        <div className="px-3 py-1.5 bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-amber-100 flex items-center gap-2">
-                          <AlertTriangle size={12} /> Mock Asset (No Content)
+                        <div className="mt-4 px-4 py-3 bg-amber-50 text-amber-700 text-xs font-bold uppercase tracking-widest rounded-xl border border-amber-100 flex items-center gap-3">
+                          <AlertTriangle size={18} /> 
+                          <div>
+                            <p className="font-black">Simulation Asset</p>
+                            <p className="text-[10px] lowercase opacity-70">No real file data attached to this mock entry.</p>
+                          </div>
                         </div>
                       )}
                     </div>

@@ -16,7 +16,7 @@ export const MOCK_IPS: IPRegistration[] = [
     ownerId: '1',
     ownerName: 'Aarav Mehta',
     timestamp: '2024-02-15 10:30 AM',
-    blockchainHash: '0x7f8e...a1b2',
+    blockchainHash: '0x_PENDING_ON_AMOY',
     status: 'Approved',
     royaltyEarned: 45000,
     description: 'A novel approach to optimizing deep learning models for edge devices.'

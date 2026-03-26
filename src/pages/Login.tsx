@@ -37,6 +37,7 @@ const Login: React.FC = () => {
         } catch (err: any) {
             if (err.response?.data?.requiresVerification) {
                 setUnverifiedEmail(err.response.data.email);
+                setResendMessage(err.response.data.message || 'Verification required. A code has been sent.');
                 setShowOtpInput(true);
                 setError('');
             } else {
@@ -73,8 +74,8 @@ const Login: React.FC = () => {
         setError('');
         setResendMessage('');
         try {
-            await api.post('/auth/send-otp', { email: unverifiedEmail, isLogin: true });
-            setResendMessage('A new verification code has been sent to your email.');
+            const response = await api.post('/auth/send-otp', { email: unverifiedEmail, isLogin: true });
+            setResendMessage(response.data.message || 'A new verification code has been sent to your email.');
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to resend OTP. Please try again.');
         } finally {
@@ -239,7 +240,7 @@ const Login: React.FC = () => {
                             <form onSubmit={handleVerifyLogin} className="space-y-5">
                                 <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-2xl mb-6 text-center">
                                     <p className="text-sm font-medium text-indigo-800">
-                                        We've sent a 6-digit verification code to <strong>{unverifiedEmail}</strong>.
+                                        {resendMessage || `We've sent a 6-digit verification code to ${unverifiedEmail}.`}
                                     </p>
                                 </div>
 

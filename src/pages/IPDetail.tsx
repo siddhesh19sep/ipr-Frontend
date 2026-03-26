@@ -2,7 +2,8 @@ import React, { useEffect, useState, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api, { renewIP, transferOwnership } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
-import { ArrowLeft, ShieldCheck, CheckCircle, Clock, Hash, Calendar, User, Tag, Gavel, ExternalLink, Download, IndianRupee, Hourglass, Trash2, Key, ShoppingCart, Edit3, Save, X, ArrowLeftRight, AlertTriangle, Mail } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, CheckCircle, Clock, Hash, Calendar, User, Users, Tag, Gavel, ExternalLink, Download, IndianRupee, Hourglass, Trash2, Key, ShoppingCart, Edit3, Save, X, ArrowLeftRight, AlertTriangle, Mail } from 'lucide-react';
+
 
 interface IPDetail {
     _id: string;
@@ -13,6 +14,7 @@ interface IPDetail {
     fileHash: string;
     fileData?: string;
     gridFsId?: string;
+    hasLegacyFile?: boolean;
     txHash?: string;
     registrationCost?: number;
     expirationDate?: string;
@@ -24,6 +26,16 @@ interface IPDetail {
         email: string;
         walletAddress?: string;
     };
+    creators?: Array<{
+        user: {
+            _id: string;
+            name: string;
+            email: string;
+            walletAddress?: string;
+        };
+        share: number;
+    }>;
+
     isAvailableForLicense?: boolean;
     licensePrice?: number;
     licenseType?: string;
@@ -43,8 +55,9 @@ const IPDetail: React.FC = () => {
     const [disputeEvidence, setDisputeEvidence] = useState('');
     const [isFilingDispute, setIsFilingDispute] = useState(false);
 
-    // Download State
+    // Download & View State
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isViewing, setIsViewing] = useState(false);
 
     // Licensing State
     const [isEditingLicense, setIsEditingLicense] = useState(false);
@@ -172,6 +185,50 @@ const IPDetail: React.FC = () => {
             alert(err.response?.data?.message || "Purchase failed.");
         } finally {
             setIsPurchasing(false);
+        }
+    };
+
+    const handleViewDocument = async () => {
+        if (!ip) return;
+        setIsViewing(true);
+        try {
+            let content = ip.fileData;
+
+            if (!content || content === 'LARGE_FILE_STORED_IN_GRIDFS') {
+                const fileRes = await api.get(`/ip/${id}/file`);
+                content = fileRes.data.fileData;
+            }
+
+            if (content) {
+                if (content.startsWith("data:")) {
+                    const arr = content.split(',');
+                    const mime = arr[0].match(/:(.*?);/)?.[1] || '';
+                    const bstr = atob(arr[1]);
+                    let n = bstr.length;
+                    const u8arr = new Uint8Array(n);
+                    while(n--) {
+                        u8arr[n] = bstr.charCodeAt(n);
+                    }
+                    const blob = new Blob([u8arr], {type: mime});
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                } else {
+                    window.open(content, '_blank');
+                }
+            } else if (ip.fileHash && !ip.fileHash.startsWith('QmMock') && !ip.fileHash.startsWith('QmRestored')) {
+                window.open(`https://gateway.pinata.cloud/ipfs/${ip.fileHash}`, '_blank');
+            } else {
+                alert('Migration Alert: No document content found on server. Please use the "Restore Proof" tool below to re-upload the original document.');
+            }
+        } catch (error: any) {
+            console.error('Failed to view document:', error);
+            if (error.response && error.response.status === 403) {
+                alert("Access Denied: You must be the original owner or hold an active license to view this document.");
+            } else {
+                alert('Failed to fetch document. Please check your connection.');
+            }
+        } finally {
+            setIsViewing(false);
         }
     };
 
@@ -406,7 +463,26 @@ const IPDetail: React.FC = () => {
                                     </div>
                                 )}
                             </dl>
+                            
+                            {ip.creators && ip.creators.length > 1 && (
+                                <div className="mt-4 pt-4 border-t border-gray-100">
+                                    <dt className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 flex items-center gap-1.5">
+                                        <Users size={12} className="text-indigo-400" /> Co-Creators Split
+                                    </dt>
+                                    <div className="space-y-2">
+                                        {ip.creators.map((c, i) => (
+                                            <div key={i} className="flex justify-between items-center text-xs">
+                                                <span className="text-gray-600 font-medium truncate max-w-[120px]" title={c.user.email}>
+                                                    {c.user.name} {c.user._id === ip.owner._id && <span className="text-[8px] bg-indigo-50 text-indigo-600 px-1 rounded ml-1">PRIMARY</span>}
+                                                </span>
+                                                <span className="font-bold text-gray-900">{c.share}%</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
+
 
                         <div className="bg-white border text-gray-600 rounded-lg p-5 shadow-sm">
                             <h4 className="flex items-center font-bold text-gray-900 mb-4 border-b pb-2">
@@ -617,17 +693,16 @@ const IPDetail: React.FC = () => {
 
                             {ip.fileHash?.startsWith('Qm') || ip.fileHash?.startsWith('b') ? (
                                 <div className="space-y-2">
-                                    {ip.gridFsId || ip.fileData || !ip.fileHash?.startsWith('QmMock') ? (
-                                        <a
-                                            href={ip.fileData || `https://gateway.pinata.cloud/ipfs/${ip.fileHash}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="bg-white border text-center border-green-200 rounded p-3 font-mono text-sm text-green-800 break-all shadow-inner hover:bg-green-100 transition-colors flex items-center justify-between"
-                                            title="View Document Content"
+                                    {ip.gridFsId || ip.hasLegacyFile || !ip.fileHash?.startsWith('QmMock') ? (
+                                        <button
+                                            onClick={handleViewDocument}
+                                            disabled={isViewing}
+                                            className="w-full bg-white border text-center border-green-200 rounded p-3 font-mono text-sm text-green-800 break-all shadow-inner hover:bg-green-100 transition-colors flex items-center justify-between"
+                                            title="View Document Content in Browser"
                                         >
-                                            <span>{ip.fileHash}</span>
+                                            <span>{isViewing ? 'Decrypting...' : ip.fileHash}</span>
                                             <ExternalLink className="h-4 w-4 ml-2 flex-shrink-0" />
-                                        </a>
+                                        </button>
                                     ) : (
                                         <div className="space-y-3">
                                             <div className="bg-amber-50 border border-amber-100 rounded p-3 font-mono text-xs text-amber-700 break-all shadow-inner flex items-center gap-2">

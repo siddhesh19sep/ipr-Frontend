@@ -120,7 +120,7 @@ const MyLicenses: React.FC = () => {
 
                                 <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-2">
                                     <Link 
-                                        to={`/ip/${license.ipId?._id}`}
+                                        to={`/ips/${license.ipId?._id}`}
                                         className="flex-1 bg-white border border-slate-200 text-slate-700 font-bold py-2 rounded-xl text-center text-sm hover:bg-slate-100 transition-colors flex items-center justify-center gap-2"
                                     >
                                         View Asset <ExternalLink size={14} />

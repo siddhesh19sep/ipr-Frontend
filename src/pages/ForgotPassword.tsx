@@ -103,8 +103,7 @@ const ForgotPassword: React.FC = () => {
                             </div>
                             <h2 className="text-2xl font-bold text-white mb-3">Email Sent!</h2>
                             <p className="text-slate-400 mb-8 leading-relaxed">
-                                We've dispatched a recovery link to <span className="text-white font-bold">{email}</span>. 
-                                Please check your inbox (and spam folder) to reset your password.
+                                {message || `We've dispatched a recovery link to ${email}. Please check your inbox (and spam folder) to reset your password.`}
                             </p>
                             <Link 
                                 to="/login" 

@@ -41,29 +41,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isAdminView, setIsAdminView] = useState(false);
 
     useEffect(() => {
-        const initAuth = async () => {
+    const initAuth = async () => {
             const storedToken = localStorage.getItem('token');
+            console.log("Auth Initialization - Token exists:", !!storedToken);
             if (storedToken) {
                 try {
                     const decoded: any = jwtDecode(storedToken);
+                    console.log("Auth Initialization - Token Decoded:", decoded.username);
                     // Check if token is expired or missing the new name payload
-                    if (decoded.exp * 1000 < Date.now() || !decoded.name) {
+                    if (decoded.exp * 1000 < Date.now()) {
+                        console.warn("Auth Initialization - Token Expired");
                         logout();
-                    } else {
-                        setToken(storedToken);
-                        const fallbackRole = decoded.role || 'User';
-                        setUser({
-                            id: decoded.id,
-                            role: fallbackRole,
-                            name: decoded.name || '',
-                            username: decoded.username || '',
-                            email: decoded.email || '',
-                            walletAddress: decoded.walletAddress || '',
-                            avatarUrl: decoded.avatarUrl || ''
-                        });
-                        setIsAdminView(fallbackRole === 'Admin');
+                    } else if (!decoded.name) {
+                        console.warn("Auth Initialization - Token missing 'name' field, refreshing session...");
+                        // We might want to allow this for legacy tokens but mark for refresh
+                        // For now, let's just log it instead of forcing logout if we want to be less aggressive.
                     }
+                    
+                    setToken(storedToken);
+                    const fallbackRole = decoded.role || 'User';
+                    setUser({
+                        id: decoded.id,
+                        role: fallbackRole,
+                        name: decoded.name || decoded.username || '',
+                        username: decoded.username || '',
+                        email: decoded.email || '',
+                        walletAddress: decoded.walletAddress || '',
+                        avatarUrl: decoded.avatarUrl || ''
+                    });
+                    setIsAdminView(fallbackRole === 'Admin');
                 } catch (error) {
+                    console.error("Auth Initialization - Decode Error:", error);
                     logout();
                 }
             }

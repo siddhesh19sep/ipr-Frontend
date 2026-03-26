@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
+import { Web3Provider } from './context/Web3Context';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
 import Navbar from './components/Navbar';
@@ -53,9 +54,11 @@ function App() {
 
     return (
         <AuthProvider>
-            <BrowserRouter>
-                <AppContent />
-            </BrowserRouter>
+            <Web3Provider>
+                <BrowserRouter>
+                    <AppContent />
+                </BrowserRouter>
+            </Web3Provider>
         </AuthProvider>
     );
 }
@@ -66,6 +69,8 @@ function AppContent() {
     
     // Hide global layout on public-facing pages
     const isPublicPage = location.pathname === '/' || 
+                         location.pathname === '/login' || 
+                         location.pathname === '/register' || 
                          location.pathname === '/verify' || 
                          location.pathname === '/forgot-password' || 
                          location.pathname.startsWith('/reset-password/');

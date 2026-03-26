@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import { Search, Filter, Shield, Clock, CheckCircle, XCircle, FileText } from 'lucide-react';
+import { Search, Filter, Shield, Clock, CheckCircle, XCircle, FileText, BarChart3, X, TrendingUp, IndianRupee } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { motion, AnimatePresence } from 'motion/react';
+
 
 interface IPItem {
     _id: string;
@@ -21,11 +24,17 @@ const IPListing: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
+    const [filterStatus, setFilterStatus] = useState('');
+    const [selectedIpAnalytics, setSelectedIpAnalytics] = useState<IPItem | null>(null);
+    const [analyticsData, setAnalyticsData] = useState<any[]>([]);
+    const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
+
 
     useEffect(() => {
         const fetchIps = async () => {
             try {
-                const response = await api.get('/ip/all?marketplace=true');
+                // Fetch ALL IPs instead of just marketplace
+                const response = await api.get('/ip/all');
                 setIps(response.data);
             } catch (error) {
                 console.error("Failed to fetch IPs", error);
@@ -36,21 +45,37 @@ const IPListing: React.FC = () => {
         fetchIps();
     }, []);
 
+    const fetchAnalytics = async (ip: IPItem) => {
+        setIsAnalyticsLoading(true);
+        setSelectedIpAnalytics(ip);
+        try {
+            const response = await api.get(`/dashboard/analytics/${ip._id}`);
+            setAnalyticsData(response.data);
+        } catch (error) {
+            console.error("Failed to fetch analytics", error);
+        } finally {
+            setIsAnalyticsLoading(false);
+        }
+    };
+
+
     const filteredIps = ips.filter(ip => {
         const matchesSearch = ip.title.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = filterCategory ? ip.category === filterCategory : true;
-        return matchesSearch && matchesCategory;
+        const matchesStatus = filterStatus ? ip.status === filterStatus : true;
+        return matchesSearch && matchesCategory && matchesStatus;
     });
+
 
     return (
         <div className="space-y-6">
             <div className="bg-white px-4 py-5 border-b border-gray-200 sm:px-6 rounded-lg shadow-sm">
                 <h3 className="text-xl leading-6 font-bold text-gray-900 flex items-center gap-2">
                     <Shield className="h-6 w-6 text-indigo-600" />
-                    Intellectual Property Registry
+                    License Marketplace
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
-                    A verifiable ledger of all registered intellectual properties on the network.
+                    Browse globally registered intellectual properties securely available for commercial licensing.
                 </p>
             </div>
 
@@ -67,7 +92,7 @@ const IPListing: React.FC = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="relative w-full sm:w-64">
+                <div className="relative w-full sm:w-48">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Filter className="h-5 w-5 text-gray-400" />
                     </div>
@@ -84,7 +109,24 @@ const IPListing: React.FC = () => {
                         <option value="Other">Other</option>
                     </select>
                 </div>
+                <div className="relative w-full sm:w-48">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Clock className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <select
+                        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md p-2.5 border bg-white"
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                    >
+                        <option value="">All Statuses</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
             </div>
+
+
 
             {isLoading ? (
                 <div className="flex justify-center py-20">
@@ -137,14 +179,114 @@ const IPListing: React.FC = () => {
                                 <span className="text-xs text-gray-500 flex items-center">
                                     Registered: {new Date(ip.createdAt).toLocaleDateString()}
                                 </span>
-                                <Link to={`/ips/${ip._id}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-                                    View Details &rarr;
-                                </Link>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => fetchAnalytics(ip)}
+                                        className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                        title="View Performance Graph"
+                                    >
+                                        <BarChart3 className="h-4 w-4" />
+                                    </button>
+                                    <Link to={`/ips/${ip._id}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                                        View Details &rarr;
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
+
+            {/* Analytics Modal */}
+            <AnimatePresence>
+                {selectedIpAnalytics && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedIpAnalytics(null)}
+                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 border border-slate-100"
+                        >
+                            <div className="p-8">
+                                <div className="flex items-center justify-between mb-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                                            <TrendingUp size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-black text-slate-900 tracking-tight">Asset Performance</h3>
+                                            <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mt-0.5">{selectedIpAnalytics.title}</p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => setSelectedIpAnalytics(null)}
+                                        className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                                    >
+                                        <X className="h-6 w-6 text-slate-400" />
+                                    </button>
+                                </div>
+
+                                {isAnalyticsLoading ? (
+                                    <div className="h-64 flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex items-center justify-between">
+                                            <div>
+                                                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Total Royalty Earning</p>
+                                                <h4 className="text-3xl font-black text-slate-900 flex items-center gap-2">
+                                                    <IndianRupee className="text-emerald-500" size={24} />
+                                                    {analyticsData.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()}
+                                                </h4>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Current Status</p>
+                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+                                                    selectedIpAnalytics.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : 
+                                                    selectedIpAnalytics.status === 'Pending' ? 'bg-amber-100 text-amber-700' : 
+                                                    'bg-rose-100 text-rose-700'
+                                                }`}>
+                                                    {selectedIpAnalytics.status}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="h-64 mt-8">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={analyticsData}>
+                                                    <defs>
+                                                        <linearGradient id="colorRoyaltyAsset" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.15} />
+                                                            <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} dy={10} />
+                                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(val) => `₹${val}`} dx={-10} />
+                                                    <Tooltip
+                                                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
+                                                        itemStyle={{ color: '#4f46e5', fontWeight: 'bold' }}
+                                                    />
+                                                    <Area type="monotone" dataKey="amount" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorRoyaltyAsset)" />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
         </div>
     );
 };

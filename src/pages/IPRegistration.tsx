@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
-import { Upload, FileText, Type, List, Tag, Shield, IndianRupee, Calendar, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Upload, FileText, Type, List, Tag, Shield, IndianRupee, Calendar, CheckCircle2, AlertTriangle, Users, Plus, Trash2, ArrowUpRight, ShieldCheck, Activity, FilePlus } from 'lucide-react';
+
 import { AuthContext } from '../context/AuthContext';
 import { motion } from 'motion/react';
 
@@ -18,6 +19,8 @@ const IPRegistration: React.FC = () => {
     const [category, setCategory] = useState('Patent');
     const [validityPeriod, setValidityPeriod] = useState<number | string>(5);
     const [file, setFile] = useState<File | null>(null);
+    const [creators, setCreators] = useState([{ email: '', share: 100 }]);
+
 
     const [pricingMatrix, setPricingMatrix] = useState<Record<string, number>>({
         Patent: 750, Trademark: 850, Copyright: 35, 'Trade Secret': 50, Other: 100
@@ -27,6 +30,7 @@ const IPRegistration: React.FC = () => {
     const [error, setError] = useState('');
     const [showMockPayment, setShowMockPayment] = useState(false);
     const [mockOrderData, setMockOrderData] = useState<any>(null);
+    const [showRegistrationForm, setShowRegistrationForm] = useState(false);
 
     // AI Scanner States
     const [isScanning, setIsScanning] = useState(false);
@@ -35,6 +39,32 @@ const IPRegistration: React.FC = () => {
 
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
+
+    useEffect(() => {
+        if (user && creators[0].email === '') {
+            setCreators([{ email: user.email, share: 100 }]);
+        }
+    }, [user]);
+
+    const [myIps, setMyIps] = useState<any[]>([]);
+    const [isLoadingIps, setIsLoadingIps] = useState(true);
+
+    useEffect(() => {
+        const fetchMyIps = async () => {
+            try {
+                const res = await api.get('/dashboard/creator');
+                if (res.data && res.data.recentAssets) {
+                    setMyIps(res.data.recentAssets);
+                }
+            } catch (err) {
+                console.error("Failed to load user IPs", err);
+            } finally {
+                setIsLoadingIps(false);
+            }
+        };
+        fetchMyIps();
+    }, []);
+
 
     useEffect(() => {
         const fetchPricing = async () => {
@@ -54,6 +84,24 @@ const IPRegistration: React.FC = () => {
             setFile(e.target.files[0]);
         }
     };
+
+    const addCreator = () => {
+        setCreators([...creators, { email: '', share: 0 }]);
+    };
+
+    const removeCreator = (index: number) => {
+        const newCreators = creators.filter((_, i) => i !== index);
+        setCreators(newCreators);
+    };
+
+    const updateCreator = (index: number, field: 'email' | 'share', value: string | number) => {
+        const newCreators = [...creators];
+        newCreators[index] = { ...newCreators[index], [field]: value };
+        setCreators(newCreators);
+    };
+
+    const totalShare = creators.reduce((acc, curr) => acc + (Number(curr.share) || 0), 0);
+
 
     const getPricingDetails = () => {
         const baseCostPerYear = pricingMatrix[category] || 300;
@@ -77,6 +125,19 @@ const IPRegistration: React.FC = () => {
             setError('Please upload a document (.pdf, .doc, .txt) to register.');
             return;
         }
+
+        if (Math.round(totalShare) !== 100) {
+            alert('Total creator shares must sum to 100%.');
+            setError('Total creator shares must sum to 100%.');
+            return;
+        }
+
+        if (creators.some(c => !c.email)) {
+            alert('Please provide emails for all creators.');
+            setError('Please provide emails for all creators.');
+            return;
+        }
+
 
         // Start AI Security Scan
         setError('');
@@ -197,8 +258,10 @@ const IPRegistration: React.FC = () => {
                             description,
                             category,
                             fileContent,
-                            validityPeriod: typeof validityPeriod === 'number' ? validityPeriod : (parseInt(validityPeriod as string) || 1)
+                            validityPeriod: typeof validityPeriod === 'number' ? validityPeriod : (parseInt(validityPeriod as string) || 1),
+                            creators
                         });
+
 
                         navigate('/dashboard');
                     } catch (verificationError: any) {
@@ -260,8 +323,10 @@ const IPRegistration: React.FC = () => {
                 description,
                 category,
                 fileContent,
-                validityPeriod: typeof validityPeriod === 'number' ? validityPeriod : (parseInt(validityPeriod as string) || 1)
+                validityPeriod: typeof validityPeriod === 'number' ? validityPeriod : (parseInt(validityPeriod as string) || 1),
+                creators
             });
+
 
             setIsSubmitting(false);
             navigate('/dashboard');
@@ -273,15 +338,25 @@ const IPRegistration: React.FC = () => {
     }
 
     return (
-        <div className="max-w-3xl border border-gray-200 bg-white rounded-xl shadow-lg mx-auto overflow-hidden">
-            <div className="px-6 py-6 border-b border-gray-200 bg-gray-50/50">
-                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                    <FileText className="h-6 w-6 text-indigo-600" /> Register Intellectual Property
-                </h2>
-                <p className="mt-1 text-sm text-gray-500">
-                    Upload your documents to secure them with a permanent SHA-256 hash on the platform.
-                </p>
-            </div>
+        <div className="max-w-6xl mx-auto space-y-8 pb-12">
+            {showRegistrationForm ? (
+            <div className="max-w-3xl border border-gray-200 bg-white rounded-xl shadow-lg mx-auto overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+                <div className="px-6 py-6 border-b border-gray-200 bg-gray-50/50 flex justify-between items-start">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                            <FileText className="h-6 w-6 text-indigo-600" /> Register Intellectual Property
+                        </h2>
+                        <p className="mt-1 text-sm text-gray-500">
+                            Upload your documents to secure them with a permanent SHA-256 hash on the platform.
+                        </p>
+                    </div>
+                    <button 
+                        onClick={() => setShowRegistrationForm(false)}
+                        className="text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-lg transition-colors border border-slate-200"
+                    >
+                        Cancel
+                    </button>
+                </div>
 
             <div className="px-6 py-6">
                 {error && (
@@ -365,10 +440,69 @@ const IPRegistration: React.FC = () => {
                                 onChange={(e) => setDescription(e.target.value)}
                                 className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2.5 border"
                                 placeholder="Detailed description of your IP..."
-
                             />
                         </div>
                     </div>
+
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                <Users className="h-5 w-5 text-indigo-600" />
+                                Co-Creators & Royalty Split
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={addCreator}
+                                className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 flex items-center gap-1 transition-colors"
+                            >
+                                <Plus size={14} /> Add Creator
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-3">
+                            {creators.map((creator, index) => (
+                                <div key={index} className="flex gap-3 items-center">
+                                    <div className="flex-1">
+                                        <input
+                                            type="email"
+                                            value={creator.email}
+                                            onChange={(e) => updateCreator(index, 'email', e.target.value)}
+                                            placeholder="User Email"
+                                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500"
+                                            readOnly={index === 0 && creator.email === user?.email}
+                                        />
+                                    </div>
+                                    <div className="w-24 relative">
+                                        <input
+                                            type="number"
+                                            value={creator.share}
+                                            onChange={(e) => updateCreator(index, 'share', e.target.value)}
+                                            placeholder="%"
+                                            className="w-full border border-slate-200 rounded-lg pl-3 pr-6 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500"
+                                        />
+                                        <span className="absolute right-2 top-2 text-slate-400 text-sm">%</span>
+                                    </div>
+                                    {index > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => removeCreator(index)}
+                                            className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-4 pt-4 border-t border-slate-200 flex justify-between items-center">
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Split</span>
+                            <span className={`text-sm font-black ${totalShare === 100 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {totalShare}%
+                            </span>
+                        </div>
+                    </div>
+
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Document Upload</label>
@@ -439,6 +573,78 @@ const IPRegistration: React.FC = () => {
                     </div>
                 </form>
             </div>
+            </div>
+            ) : (
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] w-full animate-in fade-in zoom-in-95 duration-300">
+                {/* My Registered IPs Section */}
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                            <ShieldCheck size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black text-slate-900 tracking-tight">My Registered IPs</h3>
+                            <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mt-0.5 flex items-center gap-1.5">
+                                <Activity size={12} className="animate-pulse" /> Live Blockchain Ledger
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Link to="/ips" className="px-5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-black text-slate-600 transition-all flex items-center gap-2 group">
+                            Browse Platform Ledger <ArrowUpRight size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                        </Link>
+                        <button 
+                            onClick={() => setShowRegistrationForm(true)}
+                            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-md hover:shadow-xl hover:shadow-indigo-500/20 hover:-translate-y-0.5"
+                        >
+                            <FilePlus size={16} /> Register New IP
+                        </button>
+                    </div>
+                </div>
+
+                {isLoadingIps ? (
+                    <div className="py-12 flex justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    </div>
+                ) : myIps.length === 0 ? (
+                    <div className="py-12 flex flex-col items-center justify-center text-center bg-slate-50 rounded-3xl border border-dashed border-slate-200 max-w-3xl mx-auto">
+                        <FilePlus className="text-slate-300 w-12 h-12 mb-3" />
+                        <h4 className="text-slate-700 font-bold">No Assets Found</h4>
+                        <p className="text-slate-500 text-sm max-w-sm mt-1">You haven't registered any Intellectual Property yet. Fill out the form above to secure your first document.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {myIps.map((ip: any, idx: number) => (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: idx * 0.05 }}
+                                key={ip._id}
+                                onClick={() => navigate(`/ips/${ip._id}`)}
+                                className="p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all cursor-pointer group flex flex-col justify-between"
+                            >
+                                <div>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg ${ip.status === 'Approved' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : ip.status === 'Rejected' ? 'bg-rose-100 text-rose-700 border border-rose-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
+                                            {ip.status}
+                                        </span>
+                                        <div className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-indigo-600 transition-colors">
+                                            <ArrowUpRight size={14} className="text-slate-400 group-hover:text-white transition-colors" />
+                                        </div>
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 text-sm mb-1 line-clamp-2 leading-tight group-hover:text-indigo-700 transition-colors">{ip.title}</h4>
+                                    <p className="text-xs text-slate-500 line-clamp-1">{ip.category}</p>
+                                </div>
+                                <div className="mt-4 pt-3 border-t border-slate-200/60">
+                                    <p className="text-[9px] font-mono text-slate-400 uppercase">TX HASH</p>
+                                    <p className="text-[10px] font-mono text-slate-600 truncate mt-0.5" title={ip.fileHash || ip.txHash}>{ip.fileHash || ip.txHash || 'Pending TX'}</p>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
+            </div>
+            )}
 
             {/* Professional Mock Payment Modal Overlay */}
             {showMockPayment && (

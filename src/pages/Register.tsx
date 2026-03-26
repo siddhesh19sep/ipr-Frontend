@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
+import { Web3Context } from '../context/Web3Context';
 import { Shield, User, Mail, Lock, Wallet, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -17,29 +18,21 @@ const Register: React.FC = () => {
     const [isSendingOtp, setIsSendingOtp] = useState(false);
     const [showOtpInput, setShowOtpInput] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
 
     const navigate = useNavigate();
     const { login } = useContext(AuthContext);
+    const { account, connectWallet: connectWeb3, isConnecting: isWeb3Connecting } = useContext(Web3Context);
+
+    // Sync local wallet address with Web3Context
+    React.useEffect(() => {
+        if (account) {
+            setWalletAddress(account);
+        }
+    }, [account]);
 
     const connectWallet = async () => {
-        setIsConnecting(true);
-        setError('');
-        try {
-            if (typeof window.ethereum === 'undefined') {
-                throw new Error('MetaMask is not installed! Please install MetaMask to connect your Web3 wallet.');
-            }
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            if (accounts && accounts.length > 0) {
-                setWalletAddress(accounts[0]);
-            } else {
-                setError('No wallet accounts found.');
-            }
-        } catch (err: any) {
-            console.error('Wallet connection failed:', err);
-            setError(err.message || 'Failed to connect wallet.');
-        } finally {
-            setIsConnecting(false);
-        }
+        await connectWeb3();
     };
 
     const handleSendOtp = async (e: React.FormEvent) => {
@@ -48,7 +41,8 @@ const Register: React.FC = () => {
         setError('');
 
         try {
-            await api.post('/auth/send-otp', { email, username });
+            const response = await api.post('/auth/send-otp', { email, username });
+            setSuccessMessage(response.data.message || 'Verification code sent!');
             setShowOtpInput(true);
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to send verification code. Please try again.');
@@ -199,8 +193,8 @@ const Register: React.FC = () => {
                                             </button>
                                         </div>
                                     ) : (
-                                        <button type="button" onClick={connectWallet} disabled={isConnecting} className={`w-full flex justify-center items-center py-4 px-4 border-2 border-dashed border-slate-300 rounded-2xl text-sm font-bold text-slate-600 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-700 focus:outline-none transition-all ${isConnecting ? 'opacity-75 cursor-not-allowed' : ''}`}>
-                                            {isConnecting ? (
+                                        <button type="button" onClick={connectWallet} disabled={isWeb3Connecting} className={`w-full flex justify-center items-center py-4 px-4 border-2 border-dashed border-slate-300 rounded-2xl text-sm font-bold text-slate-600 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-700 focus:outline-none transition-all ${isWeb3Connecting ? 'opacity-75 cursor-not-allowed' : ''}`}>
+                                            {isWeb3Connecting ? (
                                                 <span className="flex items-center gap-2">
                                                     <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                                     Verifying MetaMask...
@@ -229,7 +223,7 @@ const Register: React.FC = () => {
                             <form onSubmit={handleSubmit} className="space-y-5">
                                 <div className="p-5 bg-emerald-50 border border-emerald-100 rounded-2xl mb-6 text-center">
                                     <p className="text-sm font-medium text-emerald-800">
-                                        We've sent a 6-digit verification code to <strong>{email}</strong>.
+                                        {successMessage || `We've sent a 6-digit verification code to ${email}.`}
                                     </p>
                                 </div>
 
