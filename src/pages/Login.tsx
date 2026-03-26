@@ -16,6 +16,8 @@ const Login: React.FC = () => {
     const [resendMessage, setResendMessage] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [receivedOtp, setReceivedOtp] = useState('');
+    const [deliveryError, setDeliveryError] = useState('');
+    const [deliverySuggestion, setDeliverySuggestion] = useState('');
 
     const navigate = useNavigate();
     const { login } = useContext(AuthContext);
@@ -47,6 +49,14 @@ const Login: React.FC = () => {
                 if (err.response.data.otp) {
                     setOtp(err.response.data.otp);
                     setReceivedOtp(err.response.data.otp);
+                }
+
+                if (err.response.data.isMock) {
+                    setDeliveryError(err.response.data.reason || 'Infrastructure Restriction');
+                    setDeliverySuggestion(err.response.data.suggestion || 'Please check your SMTP settings.');
+                } else {
+                    setDeliveryError('');
+                    setDeliverySuggestion('');
                 }
             } else {
                 setError(err.response?.data?.message || 'Failed to login. Please try again.');
@@ -89,6 +99,14 @@ const Login: React.FC = () => {
             if (response.data.otp) {
                 setOtp(response.data.otp);
                 setReceivedOtp(response.data.otp);
+            }
+
+            if (response.data.isMock) {
+                setDeliveryError(response.data.reason || 'Infrastructure Restriction');
+                setDeliverySuggestion(response.data.suggestion || 'Please check your SMTP settings.');
+            } else {
+                setDeliveryError('');
+                setDeliverySuggestion('');
             }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to resend OTP. Please try again.');
@@ -264,9 +282,25 @@ const Login: React.FC = () => {
                                         {resendMessage || `We've sent a 6-digit verification code to ${unverifiedEmail}.`}
                                     </p>
                                     {receivedOtp && (
-                                        <div className="mt-2 inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-indigo-200 shadow-sm">
-                                            <span className="text-xs font-black uppercase tracking-tight text-indigo-600">Demo Code:</span>
-                                            <span className="text-sm font-mono font-bold text-indigo-900">{receivedOtp}</span>
+                                        <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left font-sans">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className={`w-2 h-2 rounded-full ${deliveryError ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></div>
+                                                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                                    {deliveryError ? 'Delivery Issue Detected' : 'Email Sent Successfully'}
+                                                </span>
+                                            </div>
+                                            
+                                            {deliveryError && (
+                                                <div className="mb-3">
+                                                    <p className="text-xs font-bold text-slate-700 mb-1">Reason: <span className="text-amber-600 uppercase">{deliveryError}</span></p>
+                                                    <p className="text-xs text-slate-500 font-medium leading-relaxed">{deliverySuggestion}</p>
+                                                </div>
+                                            )}
+
+                                            <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
+                                                <span className="text-xs font-bold text-slate-700">Backup Verification Code:</span>
+                                                <span className="text-lg font-mono font-black text-indigo-600 bg-white px-3 py-1 rounded-lg border border-indigo-100 shadow-sm">{receivedOtp}</span>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
