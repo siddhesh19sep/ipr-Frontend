@@ -193,6 +193,14 @@ const Navbar: React.FC = () => {
                         {/* Shared Wallet Button (Visible for all) */}
                         <div className="flex items-center gap-4 ml-4 pl-4 border-l border-gray-200">
                             <div className="relative">
+                                {account && (
+                                    <div className="flex flex-col items-end mr-2">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">
+                                            {user?.role === 'Admin' ? 'Admin Blockchain ID' : 'Polygon Wallet'}
+                                        </span>
+                                        <div className="h-0.5 w-8 bg-indigo-500 rounded-full opacity-50"></div>
+                                    </div>
+                                )}
                                 <button
                                     onClick={() => account ? setShowWalletMenu(!showWalletMenu) : connectWallet()}
                                     disabled={isConnecting}
