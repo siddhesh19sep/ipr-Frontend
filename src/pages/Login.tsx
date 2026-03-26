@@ -40,6 +40,11 @@ const Login: React.FC = () => {
                 setResendMessage(err.response.data.message || 'Verification required. A code has been sent.');
                 setShowOtpInput(true);
                 setError('');
+                
+                // DEMO MODE: Auto-fill OTP if returned by backend
+                if (err.response.data.otp) {
+                    setOtp(err.response.data.otp);
+                }
             } else {
                 setError(err.response?.data?.message || 'Failed to login. Please try again.');
             }
@@ -76,6 +81,11 @@ const Login: React.FC = () => {
         try {
             const response = await api.post('/auth/send-otp', { email: unverifiedEmail, isLogin: true });
             setResendMessage(response.data.message || 'A new verification code has been sent to your email.');
+            
+            // DEMO MODE: Auto-fill OTP if returned by backend
+            if (response.data.otp) {
+                setOtp(response.data.otp);
+            }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to resend OTP. Please try again.');
         } finally {

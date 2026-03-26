@@ -57,6 +57,11 @@ const Register: React.FC = () => {
             setSuccessMessage(response.data.message || 'Verification code sent!');
             setShowOtpInput(true);
             setResendTimer(30); // 30 seconds cooldown
+            
+            // DEMO MODE: Auto-fill OTP if returned by backend
+            if (response.data.otp) {
+                setOtp(response.data.otp);
+            }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to send verification code. Please try again.');
         } finally {
