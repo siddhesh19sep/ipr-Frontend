@@ -19,10 +19,22 @@ const Register: React.FC = () => {
     const [showOtpInput, setShowOtpInput] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
+    const [resendTimer, setResendTimer] = useState(0);
 
     const navigate = useNavigate();
     const { login } = useContext(AuthContext);
     const { account, connectWallet: connectWeb3, isConnecting: isWeb3Connecting } = useContext(Web3Context);
+
+    // Timer logic for resend cooldown
+    React.useEffect(() => {
+        let timer: any;
+        if (resendTimer > 0) {
+            timer = setInterval(() => {
+                setResendTimer((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(timer);
+    }, [resendTimer]);
 
     // Sync local wallet address with Web3Context
     React.useEffect(() => {
@@ -35,8 +47,8 @@ const Register: React.FC = () => {
         await connectWeb3();
     };
 
-    const handleSendOtp = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSendOtp = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         setIsSendingOtp(true);
         setError('');
 
@@ -44,11 +56,18 @@ const Register: React.FC = () => {
             const response = await api.post('/auth/send-otp', { email, username });
             setSuccessMessage(response.data.message || 'Verification code sent!');
             setShowOtpInput(true);
+            setResendTimer(30); // 30 seconds cooldown
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to send verification code. Please try again.');
         } finally {
             setIsSendingOtp(false);
         }
+    };
+
+    const handleResendOtp = async () => {
+        if (resendTimer > 0) return;
+        setSuccessMessage('Resending code...');
+        await handleSendOtp();
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -251,9 +270,19 @@ const Register: React.FC = () => {
                                     )}
                                 </button>
                                 
-                                <button type="button" onClick={() => setShowOtpInput(false)} className="w-full mt-4 text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors">
-                                    &larr; Back to details
-                                </button>
+                                <div className="flex justify-between items-center w-full mt-4">
+                                    <button type="button" onClick={() => setShowOtpInput(false)} className="text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors">
+                                        &larr; Back to details
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        onClick={handleResendOtp}
+                                        disabled={isSendingOtp || resendTimer > 0}
+                                        className="text-sm font-bold text-emerald-600 hover:text-emerald-800 transition-colors disabled:opacity-50 disabled:text-slate-400"
+                                    >
+                                        {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code'}
+                                    </button>
+                                </div>
                             </form>
                         )}
 
