@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Web3Context } from '../context/Web3Context';
-import { LogOut, Shield, Settings as SettingsIcon, ArrowLeftRight, Bell, Check, Trash2, Info, Wallet } from 'lucide-react';
+import { LogOut, Shield, Settings as SettingsIcon, ArrowLeftRight, Bell, Check, Trash2, Info, Wallet, ExternalLink } from 'lucide-react';
 import * as api from '../services/api';
 import GlobalSearch from './GlobalSearch';
 
@@ -13,6 +13,7 @@ const Navbar: React.FC = () => {
     const [alerts, setAlerts] = React.useState<any[]>([]);
     const [showAlerts, setShowAlerts] = React.useState(false);
     const [unreadCount, setUnreadCount] = React.useState(0);
+    const [showWalletMenu, setShowWalletMenu] = React.useState(false);
 
     React.useEffect(() => {
         if (isAuthenticated) {
@@ -191,13 +192,13 @@ const Navbar: React.FC = () => {
 
                         {/* Shared Wallet Button (Visible for all) */}
                         <div className="flex items-center gap-4 ml-4 pl-4 border-l border-gray-200">
-                            <div className="relative group">
+                            <div className="relative">
                                 <button
-                                    onClick={connectWallet}
+                                    onClick={() => account ? setShowWalletMenu(!showWalletMenu) : connectWallet()}
                                     disabled={isConnecting}
                                     className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
                                         account 
-                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
+                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100' 
                                         : 'bg-indigo-600 text-white border-transparent hover:bg-indigo-700 shadow-sm shadow-indigo-100'
                                     }`}
                                 >
@@ -207,7 +208,38 @@ const Navbar: React.FC = () => {
                                         : isConnecting ? 'Connecting...' : 'Connect Wallet'}
                                 </button>
                                 
-                                {isAuthenticated && user && (
+                                {showWalletMenu && account && (
+                                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden ring-1 ring-black ring-opacity-5">
+                                        <div className="p-4 border-b border-slate-100 bg-slate-50">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Connected Wallet</p>
+                                            <p className="text-[10px] font-mono text-slate-600 break-all bg-white p-2 rounded-lg border border-slate-100 shadow-inner">
+                                                {account}
+                                            </p>
+                                        </div>
+                                        <div className="p-2 space-y-1">
+                                            <a 
+                                                href={`https://amoy.polygonscan.com/address/${account}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 w-full px-3 py-2 text-[11px] font-bold text-slate-600 hover:text-indigo-600 hover:bg-slate-50 rounded-lg transition-colors"
+                                            >
+                                                <ExternalLink size={14} /> View on Polygonscan
+                                            </a>
+                                            <button 
+                                                onClick={() => {
+                                                    // Note: We don't have a formal disconnect in basic ethers Web3Context 
+                                                    // but we can clear the state in the context if we had a disconnect function
+                                                    setShowWalletMenu(false);
+                                                }}
+                                                className="flex items-center gap-2 w-full px-3 py-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border-t border-slate-50 mt-1"
+                                            >
+                                                <LogOut size={14} /> Disconnect
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {isAuthenticated && user && !showWalletMenu && (
                                     <div className="absolute right-0 top-full mt-2 hidden group-hover:block whitespace-nowrap bg-slate-900 text-white px-3 py-1 rounded text-[10px] font-bold z-50">
                                         Logged in as {user.role}: {user.name}
                                     </div>
