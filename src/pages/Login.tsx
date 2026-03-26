@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
-import { Shield, User, Lock, ArrowRight } from 'lucide-react';
+import { Shield, User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const Login: React.FC = () => {
@@ -14,6 +14,8 @@ const Login: React.FC = () => {
     const [showOtpInput, setShowOtpInput] = useState(false);
     const [unverifiedEmail, setUnverifiedEmail] = useState('');
     const [resendMessage, setResendMessage] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [receivedOtp, setReceivedOtp] = useState('');
 
     const navigate = useNavigate();
     const { login } = useContext(AuthContext);
@@ -44,6 +46,7 @@ const Login: React.FC = () => {
                 // DEMO MODE: Auto-fill OTP if returned by backend
                 if (err.response.data.otp) {
                     setOtp(err.response.data.otp);
+                    setReceivedOtp(err.response.data.otp);
                 }
             } else {
                 setError(err.response?.data?.message || 'Failed to login. Please try again.');
@@ -85,6 +88,7 @@ const Login: React.FC = () => {
             // DEMO MODE: Auto-fill OTP if returned by backend
             if (response.data.otp) {
                 setOtp(response.data.otp);
+                setReceivedOtp(response.data.otp);
             }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to resend OTP. Please try again.');
@@ -197,13 +201,20 @@ const Login: React.FC = () => {
                                         <Lock className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                                     </div>
                                     <input
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="pl-12 block w-full bg-slate-50 border border-slate-200 rounded-2xl shadow-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white text-base px-4 py-3.5 transition-all text-slate-900 font-medium outline-none"
+                                        className="pl-12 pr-12 block w-full bg-slate-50 border border-slate-200 rounded-2xl shadow-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white text-base px-4 py-3.5 transition-all text-slate-900 font-medium outline-none"
                                         placeholder="••••••••"
                                         required
                                     />
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-500 transition-colors"
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
                                 </div>
                             </div>
 
@@ -252,6 +263,12 @@ const Login: React.FC = () => {
                                     <p className="text-sm font-medium text-indigo-800">
                                         {resendMessage || `We've sent a 6-digit verification code to ${unverifiedEmail}.`}
                                     </p>
+                                    {receivedOtp && (
+                                        <div className="mt-2 inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-indigo-200 shadow-sm">
+                                            <span className="text-xs font-black uppercase tracking-tight text-indigo-600">Demo Code:</span>
+                                            <span className="text-sm font-mono font-bold text-indigo-900">{receivedOtp}</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="space-y-1.5">
